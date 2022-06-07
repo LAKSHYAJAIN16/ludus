@@ -29,7 +29,7 @@ yarn-error.log*
 .env*.local
 
 # key files
-./keys.txt
+/keys.txt
 
 # vercel
 .vercel

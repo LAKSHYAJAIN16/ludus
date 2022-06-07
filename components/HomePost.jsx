@@ -4,10 +4,14 @@ import moment from "moment";
 import axios from "axios";
 import { motion } from "framer-motion";
 
-import EMOTION_TO_IMAGE, { isNotReg } from "../lib/EMOTION_TO_IMAGE";
+import EMOTION_TO_IMAGE, {
+  isNotReg,
+  calculateEmoticonCount,
+  serializeEmoticonCount,
+} from "../lib/emotionVars";
 import calculateDimentions from "../lib/calculateDimentions";
 
-export default function HomePost({ post, user }) {
+export default function HomePost({ post, user, zoomCallback }) {
   //Dimensions of the Image
   const [dims, setDims] = useState({});
 
@@ -19,6 +23,7 @@ export default function HomePost({ post, user }) {
 
   //Reactions
   const [reactions, setReactions] = useState([]);
+  const [uiReactions, setUiReactions] = useState([]);
 
   useEffect(() => {
     const run = async () => {
@@ -42,6 +47,10 @@ export default function HomePost({ post, user }) {
         `/api/get/reactions/onpost?id=${post.ref["@ref"].id}`
       );
       setReactions(reactions.data.data);
+
+      //Calculate UI
+      recalculateReactionUI(reactions.data.data);
+
       console.log(reactions.data.data);
     };
 
@@ -74,6 +83,17 @@ export default function HomePost({ post, user }) {
     setShowReactionMenu(false);
     document.getElementById("heart-sfx").play();
 
+    //Get Reactions
+    const buf = [];
+    for (let i = 0; i < reactions.length; i++) {
+      const element = reactions[i];
+      buf.push(element);
+    }
+
+    buf.push({ data: { emotion: emotion } });
+    setReactions(buf);
+    recalculateReactionUI(buf);
+
     //Send Request to API
     const payload = {
       emotion: emotion,
@@ -85,12 +105,44 @@ export default function HomePost({ post, user }) {
       },
       post: post.ref["@ref"].id,
     };
-
     const res = await axios.post("/api/create/reaction", payload);
-    const temp_reactions = reactions;
-    temp_reactions.push(res.data);
-    setReactions(temp_reactions);
-    console.log(res);
+  };
+
+  const recalculateReactionUI = (buf) => {
+    //Remove duplicates for everyone
+    let returnBuf = [];
+    let index = {};
+    let counts = {};
+
+    //Get Count
+    for (let k = 0; k < buf.length; k++) {
+      const count = calculateEmoticonCount(buf[k].data.emotion, buf);
+      counts[buf[k].data.emotion] = count;
+    }
+
+    //Remove Duplicates
+    for (let i = 0; i < buf.length; i++) {
+      const emotion = buf[i].data.emotion;
+      const keys = Object.keys(index);
+
+      let found = false;
+      for (let j = 0; j < keys.length; j++) {
+        const otherEmotion = keys[j];
+        if (otherEmotion === emotion) {
+          found = true;
+        }
+      }
+
+      if (found === true) {
+        returnBuf.splice(i, 1);
+      } else {
+        index[emotion] = "dats right bit";
+        returnBuf.push({ em: emotion, co: counts[emotion] });
+      }
+    }
+
+    console.log({ returnBuf, index, counts });
+    setUiReactions(returnBuf);
   };
 
   const openReactionMenu = () => {
@@ -112,7 +164,7 @@ export default function HomePost({ post, user }) {
 
         {/* Other Stuff */}
         <div className="secondary">
-          <a href={`/post/${post.data.id}`}>
+          <a href={`/post/${post.ref["@ref"].id}`}>
             {/* Name */}
             <p style={{ marginTop: "0px" }}>
               <span className="username">{post.data.userInfo.name}</span>
@@ -123,18 +175,22 @@ export default function HomePost({ post, user }) {
 
             {/* Text */}
             <p style={{ marginTop: "-10px" }}>{post.data.text}</p>
-
-            {/* Image for Media */}
-            {post.data.type === "media" && (
-              <>
-                <img
-                  src={post.data.image.url}
-                  height={dims.height}
-                  width={dims.width}
-                />
-              </>
-            )}
           </a>
+          {/* Image for Media */}
+          {post.data.type === "media" && (
+            <>
+              <motion.img
+                src={post.data.image.url}
+                height={dims.height}
+                width={dims.width}
+                id={`${post.data.id}:img`}
+                style={{ cursor: "zoom-in" }}
+                whileHover={{ scale: 1.005 }}
+                whileTap={{ scale: 1.02 }}
+                onClick={() => zoomCallback(`${post.data.id}:img`, post)}
+              />
+            </>
+          )}
 
           {/* Reaction Menu */}
           {showReactionMenu && (
@@ -371,54 +427,86 @@ export default function HomePost({ post, user }) {
 
           {/* Reactions */}
           <div className="reactions">
-            <motion.img
-              src="/h_REA.png"
-              height={20}
-              width={20}
-              whileHover={{ scale: 1.2 }}
-              whileTap={{ scale: 0.9 }}
-              style={{ cursor: "pointer", marginRight: "10px" }}
-              onClick={() => react("heart")}
-            />
+            <div className="reactionWrapper">
+              <motion.img
+                src="/h_REA.png"
+                height={20}
+                width={20}
+                whileHover={{ scale: 1.2 }}
+                whileTap={{ scale: 0.9 }}
+                style={{ cursor: "pointer", marginRight: "10px" }}
+                onClick={() => react("heart")}
+              />
+              <span style={{ textAlign: "center", marginLeft: "-10px" }}>
+                {serializeEmoticonCount(
+                  calculateEmoticonCount("heart", reactions)
+                )}
+              </span>
+            </div>
 
-            <motion.img
-              src="/l_REA.png"
-              height={20}
-              width={20}
-              whileHover={{ scale: 1.2 }}
-              whileTap={{ scale: 0.9 }}
-              style={{ cursor: "pointer", marginRight: "10px" }}
-              onClick={() => react("like")}
-            />
+            <div className="reactionWrapper">
+              <motion.img
+                src="/l_REA.png"
+                height={20}
+                width={20}
+                whileHover={{ scale: 1.2 }}
+                whileTap={{ scale: 0.9 }}
+                style={{ cursor: "pointer", marginRight: "10px" }}
+                onClick={() => react("like")}
+              />
+              <span style={{ textAlign: "center", marginLeft: "-10px" }}>
+                {serializeEmoticonCount(
+                  calculateEmoticonCount("like", reactions)
+                )}
+              </span>
+            </div>
 
-            <motion.img
-              src="/f_REA.png"
-              height={20}
-              width={20}
-              whileHover={{ scale: 1.2 }}
-              whileTap={{ scale: 0.9 }}
-              style={{ cursor: "pointer", marginRight: "10px" }}
-              onClick={() => react("fire")}
-            />
+            <div className="reactionWrapper">
+              <motion.img
+                src="/f_REA.png"
+                height={20}
+                width={20}
+                whileHover={{ scale: 1.2 }}
+                whileTap={{ scale: 0.9 }}
+                style={{ cursor: "pointer", marginRight: "10px" }}
+                onClick={() => react("fire")}
+              />
+              <span style={{ textAlign: "center", marginLeft: "-10px" }}>
+                {serializeEmoticonCount(
+                  calculateEmoticonCount("fire", reactions)
+                )}
+              </span>
+            </div>
 
             {/* More added on */}
-            {reactions.map((e) => (
+            {uiReactions.length !== 0 && (
               <>
-                {isNotReg(e.data.emotion) === true && (
+                {uiReactions.map((e) => (
                   <>
-                    <motion.img
-                      src={EMOTION_TO_IMAGE[e.data.emotion]}
-                      height={20}
-                      width={20}
-                      whileHover={{ scale: 1.2 }}
-                      whileTap={{ scale: 0.9 }}
-                      style={{ cursor: "pointer", marginRight: "10px" }}
-                      onClick={() => react(e.data.emotion)}
-                    />
+                    {isNotReg(e.em) === true && (
+                      <>
+                        <div className="reactionWrapper">
+                          <motion.img
+                            src={EMOTION_TO_IMAGE[e.em]}
+                            height={20}
+                            width={20}
+                            whileHover={{ scale: 1.2 }}
+                            whileTap={{ scale: 0.9 }}
+                            style={{ cursor: "pointer", marginRight: "10px" }}
+                            onClick={() => react(e.em)}
+                          />
+                          <span
+                            style={{ textAlign: "center", marginLeft: "-10px" }}
+                          >
+                            {e.co}
+                          </span>
+                        </div>
+                      </>
+                    )}
                   </>
-                )}
+                ))}
               </>
-            ))}
+            )}
 
             <motion.div
               whileHover={{ scale: 1.2 }}
@@ -442,6 +530,7 @@ export default function HomePost({ post, user }) {
           .content {
             display: flex;
             margin-bottom: 20px;
+            min-width: 300px;
           }
 
           .profilePic {
@@ -466,6 +555,12 @@ export default function HomePost({ post, user }) {
           .reactions {
             display: flex;
             margin-top: 10px;
+          }
+
+          .reactionWrapper {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
           }
         `}
       </style>

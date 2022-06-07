@@ -1,5 +1,5 @@
-import SCHOOLS from "../../../lib/ALL_SCHOOL_DOMAINS";
-import SERVERS from "../../../lib/SCHOOL_TO_SERVER";
+import SCHOOLS from "../../../lib/schoolToDomain";
+import SERVERS from "../../../lib/schoolToServer";
 
 export default async function handler(req, res) {
   //Get our email
