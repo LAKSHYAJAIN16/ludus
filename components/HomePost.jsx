@@ -11,7 +11,7 @@ import EMOTION_TO_IMAGE, {
 } from "../lib/emotionVars";
 import calculateDimentions from "../lib/calculateDimentions";
 
-export default function HomePost({ post, user, zoomCallback }) {
+export default function HomePost({ post, user }) {
   //Dimensions of the Image
   const [dims, setDims] = useState({});
 
@@ -28,10 +28,20 @@ export default function HomePost({ post, user, zoomCallback }) {
   useEffect(() => {
     const run = async () => {
       //Calculate Dimensions
-      if (post.data.type === "media" || post.data.type === "gif") {
+      if (post.data.type === "media") {
         const dimensions = calculateDimentions(
           post.data.image.dimensions.height,
           post.data.image.dimensions.width,
+          500,
+          500
+        );
+        setDims(dimensions);
+      }
+
+      if (post.data.type === "gif") {
+        const dimensions = calculateDimentions(
+          post.data.gif.dimensions.height,
+          post.data.gif.dimensions.width,
           500,
           500
         );
@@ -175,22 +185,37 @@ export default function HomePost({ post, user, zoomCallback }) {
 
             {/* Text */}
             <p style={{ marginTop: "-10px" }}>{post.data.text}</p>
+
+            {/* Image for Media */}
+            {post.data.type === "media" && (
+              <>
+                <motion.img
+                  src={post.data.image.url}
+                  height={dims.height}
+                  width={dims.width}
+                  id={`${post.data.id}:img`}
+                  style={{ cursor: "pointer" }}
+                  whileHover={{ scale: 1.005 }}
+                  whileTap={{ scale: 1.02 }}
+                />
+              </>
+            )}
+
+            {/* Gif for Gif */}
+            {post.data.type === "gif" && (
+              <>
+                <motion.img
+                  src={post.data.gif.url}
+                  height={dims.height}
+                  width={dims.width}
+                  id={`${post.data.id}:img`}
+                  style={{ cursor: "pointer" }}
+                  whileHover={{ scale: 1.005 }}
+                  whileTap={{ scale: 1.02 }}
+                />
+              </>
+            )}
           </a>
-          {/* Image for Media */}
-          {post.data.type === "media" && (
-            <>
-              <motion.img
-                src={post.data.image.url}
-                height={dims.height}
-                width={dims.width}
-                id={`${post.data.id}:img`}
-                style={{ cursor: "zoom-in" }}
-                whileHover={{ scale: 1.005 }}
-                whileTap={{ scale: 1.02 }}
-                onClick={() => zoomCallback(`${post.data.id}:img`, post)}
-              />
-            </>
-          )}
 
           {/* Reaction Menu */}
           {showReactionMenu && (
@@ -515,7 +540,9 @@ export default function HomePost({ post, user, zoomCallback }) {
               onClick={() => openReactionMenu()}
             >
               <Image src="/emoji_MARKER.png" height={20} width={20} />
-              <span style={{ marginLeft: "0px" }}>+</span>
+              <span style={{ marginLeft: "0px" }}>
+                {showReactionMenu === false ? "+" : "x"}
+              </span>
             </motion.div>
           </div>
         </div>

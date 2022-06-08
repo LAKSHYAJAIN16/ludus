@@ -6,7 +6,10 @@ import calculateDimentions from "../lib/calculateDimentions";
 
 export default function Navbar() {
   //User
-  const [user, setUser] = useState({});
+  const [user, setUser] = useState({
+    username: "no-user",
+    serverName: "error",
+  });
 
   //Modal State
   const [showModal, setShowModal] = useState(false);
@@ -20,16 +23,21 @@ export default function Navbar() {
   //Media Files
   const [mediaFile, setMediaFile] = useState(null);
 
+  //UI Glitch state
+  const [over, setOver] = useState(false);
+
   useEffect(() => {
-    const us = JSON.parse(localStorage.getItem("u_u") || "");
-    setUser(us);
+    try {
+      const us = JSON.parse(localStorage.getItem("u_u") || "");
+      setUser(us);
+    } catch (err) {}
   }, []);
 
   //Method to Open Modal
   const shareModal = () => {
     setShowModal(true);
-    window.scrollTo(0, 0)
-    document.body.style.overflow = "hidden"
+    window.scrollTo(0, 0);
+    document.body.style.overflow = "hidden";
     window.history.pushState("", "Writing Something", "/o/home?open-modal=1");
   };
 
@@ -220,7 +228,7 @@ export default function Navbar() {
     };
     input.click();
   };
-
+  
   return (
     <>
       <div className="main2">
@@ -370,7 +378,28 @@ export default function Navbar() {
         )}
 
         <div className="ui" style={{ position: "fixed" }}>
-          <p className="logoText">ludus</p>
+          <a href="/o/home">
+            <p
+              className="logoText"
+              onMouseEnter={() => setOver(true)}
+              onMouseLeave={() => setOver(false)}
+            >
+              {over === true ? (
+                <>
+                  <span ariaHidden="true" className="spanAnim">
+                    ludus
+                  </span>
+                  <span>ludus</span>
+                  <span ariaHidden="true" className="spanAnim">
+                    ludus
+                  </span>
+                </>
+              ) : (
+                <span>ludus</span>
+              )}
+            </p>
+          </a>
+
           <a className="item" href="/o/home">
             <Image src="/house_S.png" width={30} height={30} />
             <p style={{ marginLeft: "4px" }}>home</p>
@@ -391,7 +420,7 @@ export default function Navbar() {
             <p style={{ marginLeft: "4px" }}>direct messages</p>
           </a>
 
-          <a className="item" href="/o/profile">
+          <a className="item" href={`/${user.serverName}/${user.username}`}>
             <Image src="/profile_S.png" width={30} height={30} />
             <p style={{ marginLeft: "4px" }}>profile</p>
           </a>
@@ -417,16 +446,35 @@ export default function Navbar() {
             margin-top: 30px;
             cursor: pointer;
             transition: all 500ms ease;
+            position: relative;
+            ${over === false
+              ? `text-shadow: -0.04em -0.020em 0 #00fffc, 0.020em 0.028em 0 #fc00ff,
+              -0.04em -0.04em 0 #fffc00;`
+              : `text-shadow: 0.02em 0 0 #00fffc, -0.03em -0.04em 0 #fc00ff,
+              0.025em 0.04em 0 #fffc00;`}
+            ${over === false
+              ? "animation: none;"
+              : "animation: glitch 1450ms infinite;"}
           }
 
-          .logoText:hover {
-            background: -webkit-radial-gradient(
-              var(--palette-primary),
-              var(--palette-secondary),
-              var(--palette-alternate)
-            );
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+          .logoText .spanAnim {
+            position: absolute;
+            top: 0;
+            left: 0;
+          }
+
+          .logoText .spanAnim:first-child {
+            animation: glitch 1000ms infinite;
+            clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
+            transform: translate(-0.04em, -0.03em);
+            opacity: 0.75;
+          }
+
+          .logoText .spanAnim:last-child {
+            animation: glitch 620ms infinite;
+            clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
+            transform: translate(0.04em, 0.03em);
+            opacity: 0.75;
           }
 
           .item {
@@ -534,6 +582,37 @@ export default function Navbar() {
           .addon {
             margin-right: 10px;
             cursor: pointer;
+          }
+
+          @keyframes glitch {
+            0% {
+              text-shadow: 0.05em 0 0 #00fffc, -0.03em -0.04em 0 #fc00ff,
+                0.025em 0.04em 0 #fffc00;
+            }
+            15% {
+              text-shadow: 0.05em 0 0 #00fffc, -0.03em -0.04em 0 #fc00ff,
+                0.025em 0.04em 0 #fffc00;
+            }
+            16% {
+              text-shadow: -0.05em -0.025em 0 #00fffc, 0.025em 0.035em 0 #fc00ff,
+                -0.05em -0.05em 0 #fffc00;
+            }
+            49% {
+              text-shadow: -0.05em -0.025em 0 #00fffc, 0.025em 0.035em 0 #fc00ff,
+                -0.05em -0.05em 0 #fffc00;
+            }
+            50% {
+              text-shadow: 0.05em 0.035em 0 #00fffc, 0.03em 0 0 #fc00ff,
+                0 -0.04em 0 #fffc00;
+            }
+            99% {
+              text-shadow: 0.05em 0.035em 0 #00fffc, 0.03em 0 0 #fc00ff,
+                0 -0.04em 0 #fffc00;
+            }
+            100% {
+              text-shadow: -0.05em 0 0 #00fffc, -0.025em -0.04em 0 #fc00ff,
+                -0.04em -0.025em 0 #fffc00;
+            }
           }
         `}
       </style>

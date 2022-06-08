@@ -15,11 +15,6 @@ export default function Home() {
   //Feed
   const [feed, setFeed] = useState([]);
 
-  //If we're enlarging
-  const [enlargeImage, setEnlargeImage] = useState();
-  const [showEnlarge, setShowEnlarge] = useState(false);
-  const [iID, setIID] = useState("");
-
   useEffect(() => {
     const run = async () => {
       //Get User
@@ -41,10 +36,6 @@ export default function Home() {
     run();
   }, []);
 
-  const zoomCallback = (id, post) => {
-    // Code
-  };
-
   return (
     <>
       <div className="main">
@@ -54,7 +45,7 @@ export default function Home() {
           <>
             {feed.map((e) => (
               <>
-                <HomePost post={e} user={user} zoomCallback={zoomCallback} />
+                <HomePost post={e} user={user} />
               </>
             ))}
           </>

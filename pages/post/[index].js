@@ -4,7 +4,9 @@ import moment from "moment";
 import { motion } from "framer-motion";
 
 import Navbar from "../../components/Navbar";
+import calculateMargins from "../../lib/calculuateMargins";
 import EMOTION_TO_IMAGE from "../../lib/emotionVars";
+import calculateDimentions from "../../lib/calculateDimentions";
 
 export default function Post() {
   const [post, setPost] = useState({
@@ -15,8 +17,16 @@ export default function Post() {
     },
   });
 
+  //Dimensions
+  const [dims, setDims] = useState({});
+
+  //Reaction Bufs
   const [reactions, setReactions] = useState([]);
   const [uiReactions, setUiReactions] = useState([]);
+
+  //Zoom Vars
+  const [showZoom, setShowZoom] = useState(false);
+  const [zoomPercent, setZoomPercent] = useState(1);
 
   useEffect(() => {
     const run = async () => {
@@ -46,16 +56,67 @@ export default function Post() {
         }
       }
 
-      console.log(finished);
       setUiReactions(finished);
+
+      //Calculate Dimensions
+      if (res.data.data.type === "media") {
+        const dimensions = calculateDimentions(
+          res.data.data.image.dimensions.height,
+          res.data.data.image.dimensions.width,
+          700,
+          700
+        );
+        setDims(dimensions);
+      }
+
+      if (res.data.data.type === "gif") {
+        const dimensions = calculateDimentions(
+          res.data.data.gif.dimensions.height,
+          res.data.data.gif.dimensions.width,
+          700,
+          700
+        );
+        setDims(dimensions);
+      }
     };
     run();
   }, []);
+
+  const initiateZoom = () => {
+    // window.history.pushState(
+    //   {},
+    //   "Zooming in",
+    //   `${window.location}?zoomed=true`
+    // );
+    setZoomPercent(1);
+    setShowZoom(true);
+  };
+
+  const stopZoom = () => {
+    const a = `${window.location.href}`;
+    const d = a.replace("?zoom=true", "");
+    // window.history.pushState({}, "Post : dash dash dash", d);
+    setZoomPercent(1);
+    setShowZoom(false);
+  };
+
+  const ANIM_VARIANTS = {
+    zoom: {
+      scale: 1.6,
+    },
+    unZoom: {
+      scale: 1,
+    },
+    intro: {
+      opacity: 1,
+    },
+  };
 
   return (
     <>
       <div className="main">
         <Navbar />
+
         <div className="side-content content">
           <h1 className="heading">
             <a href="/o/home">
@@ -77,8 +138,42 @@ export default function Post() {
               </div>
             </div>
 
+            {/* Text */}
             <p className="text">{post.data.text}</p>
 
+            {/* Image */}
+            {post.data.type === "media" && (
+              <>
+                <motion.img
+                  src={post.data.image.url}
+                  height={dims.height}
+                  width={dims.width}
+                  id={`${post.data.id}:img`}
+                  style={{ cursor: "zoom-in" }}
+                  whileHover={{ scale: 1.005 }}
+                  whileTap={{ scale: 1.02 }}
+                  onClick={() => initiateZoom()}
+                />
+              </>
+            )}
+
+            {/* Gif */}
+            {post.data.type === "gif" && (
+              <>
+                <motion.img
+                  src={post.data.gif.url}
+                  height={dims.height}
+                  width={dims.width}
+                  id={`${post.data.id}:img`}
+                  style={{ cursor: "zoom-in" }}
+                  whileHover={{ scale: 1.005 }}
+                  whileTap={{ scale: 1.02 }}
+                  onClick={() => initiateZoom()}
+                />
+              </>
+            )}
+
+            {/* Sub Content */}
             <div className="subs">
               <p className="date">
                 {moment(post.data.toc).format("H:mm a · MMMM Do, YYYY")}
@@ -112,6 +207,93 @@ export default function Post() {
           </div>
         </div>
       </div>
+
+      {/* Zoom */}
+      {showZoom && (
+        <div className="zoomBlanket">
+          <div className="zoomCurtain"></div>
+          <p className="zoomX" onClick={() => stopZoom()}>
+            X
+          </p>
+          <div className="zoomImageWrapper">
+            {/* Image */}
+            {post.data.type === "media" && (
+              <>
+                <motion.img
+                  src={post.data.image.url}
+                  className="zoomImage"
+                  height={post.data.image.height}
+                  width={post.data.image.width}
+                  style={{
+                    marginLeft: calculateMargins(
+                      post.data.image.dimensions.height,
+                      post.data.image.dimensions.width
+                    ).mW,
+                    marginTop: calculateMargins(
+                      post.data.image.dimensions.height,
+                      post.data.image.dimensions.width
+                    ).mH,
+                    cursor: zoomPercent === 1.6 ? "zoom-out" : "zoom-in",
+                  }}
+                  variants={ANIM_VARIANTS}
+                  animate={zoomPercent === 1.6 ? "zoom" : "unzoom"}
+                  initial="intro"
+                  transition={{
+                    type: "spring",
+                    duration: 0.2,
+                    mass: 1,
+                    stiffness: 100,
+                    damping: 9,
+                  }}
+                  onClick={() =>
+                    zoomPercent === 1.6
+                      ? setZoomPercent(1)
+                      : setZoomPercent(1.6)
+                  }
+                />
+              </>
+            )}
+
+            {/* Gif */}
+            {post.data.type === "gif" && (
+              <>
+                <motion.img
+                  src={post.data.gif.url}
+                  className="zoomImage"
+                  height={post.data.gif.height}
+                  width={post.data.gif.width}
+                  style={{
+                    marginLeft: calculateMargins(
+                      post.data.gif.dimensions.height,
+                      post.data.gif.dimensions.width
+                    ).mW,
+                    marginTop: calculateMargins(
+                      post.data.gif.dimensions.height,
+                      post.data.gif.dimensions.width
+                    ).mH,
+                    cursor: zoomPercent === 1.6 ? "zoom-out" : "zoom-in",
+                  }}
+                  variants={ANIM_VARIANTS}
+                  animate={zoomPercent === 1.6 ? "zoom" : "unzoom"}
+                  initial="intro"
+                  transition={{
+                    type: "spring",
+                    duration: 0.2,
+                    mass: 1,
+                    stiffness: 100,
+                    damping: 9,
+                  }}
+                  onClick={() =>
+                    zoomPercent === 1.6
+                      ? setZoomPercent(1)
+                      : setZoomPercent(1.6)
+                  }
+                />
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       <style jsx>
         {`
@@ -182,6 +364,43 @@ export default function Post() {
             position: absolute;
             display: none;
             margin-top: -20px;
+          }
+
+          .zoomBlanket {
+            position: fixed;
+            z-index: 100;
+          }
+
+          .zoomCurtain {
+            position: absolute;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.9);
+          }
+
+          .zoomImage {
+            z-index: 105;
+            opacity: 0;
+          }
+
+          .zoomImageWrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            -webkit-transform: translate(0%, 0%);
+            transform: translate(0%, 0%);
+          }
+
+          .zoomX {
+            position: absolute;
+            margin-top: 10px;
+            margin-left: 10px;
+            color: white;
+            z-index: 103;
+            font-family: var(--mainfont);
+            font-size: 1.2em;
+            font-weight: 300;
+            cursor: pointer;
           }
         `}
       </style>
