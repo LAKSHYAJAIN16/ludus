@@ -32,7 +32,16 @@ export default async function handler(req, res) {
     sID: inData.server.sId,
     domain: inData.server.domain,
     toc: new Date(Date.now()).toISOString(),
-    pfpic: `https://avatars.dicebear.com/api/croodles-neutral/${id}.svg`,
+    pfpic: `https://avatars.dicebear.com/api/pixel-art-neutral/${id}.svg`,
+    customization: {
+      banner:
+        "https://www.solidbackgrounds.com/images/2560x1600/2560x1600-dark-gray-solid-color-background.jpg",
+      colorScheme: "def",
+      favColor:"",
+      favSong: "",
+      favMovie: "",
+      bio : "A Proud ludus User!"
+    },
   };
 
   //Define Query using FQL

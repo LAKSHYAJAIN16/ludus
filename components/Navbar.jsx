@@ -64,6 +64,7 @@ export default function Navbar() {
         userInfo: {
           name: user.username,
           pfpic: user.pfpic,
+          server : user.serverName
         },
         tags: [],
         type: "text",
@@ -77,6 +78,7 @@ export default function Navbar() {
         userInfo: {
           name: user.username,
           pfpic: user.pfpic,
+          server : user.serverName
         },
         tags: [],
         type: "media",
@@ -97,6 +99,7 @@ export default function Navbar() {
         userInfo: {
           name: user.username,
           pfpic: user.pfpic,
+          server : user.serverName
         },
         tags: [],
         type: "gif",

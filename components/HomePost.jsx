@@ -163,7 +163,7 @@ export default function HomePost({ post, user }) {
     <>
       <div className="content">
         {/* IMG */}
-        <a href={`/${post.data.userInfo.name}`}>
+        <a href={`/${post.data.userInfo.server}/${post.data.userInfo.name}`}>
           <img
             src={post.data.userInfo.pfpic}
             width={50}
