@@ -5,6 +5,7 @@ import Image from "next/image";
 
 import s from "../../lib/s";
 import Navbar from "../../components/Navbar";
+import calculateDimentions from "../../lib/calculateDimentions";
 
 export default function Profile() {
   const [user, setUser] = useState({
@@ -16,8 +17,16 @@ export default function Profile() {
   //1 = Can Follow, 2 = Already Followed, 0 = Same User
   const [followState, setFollowState] = useState(0);
 
-  //Total Followers
-  const [totalFollowers, setTotalFollowers] = useState(0);
+  //Followers
+  const [followers, setFollowers] = useState([]);
+
+  //Total Posts
+  const [posts, setPosts] = useState([]);
+  const [images, setImages] = useState([]);
+
+  //Modal States
+  const [modalState, setModalState] = useState(0);
+  const [modalImage, setModalImage] = useState({});
 
   useEffect(() => {
     const run = async () => {
@@ -45,7 +54,7 @@ export default function Profile() {
       const res2 = await axios.get(
         `/api/get/followers/allFollowers?id=${res.data.ref["@ref"].id}`
       );
-      setTotalFollowers(res2.data.data.length);
+      setFollowers(res2.data.data);
 
       //Check if the user logged in and the user we're visiting are the same
       if (is === true) {
@@ -60,6 +69,18 @@ export default function Profile() {
           }
         }
       }
+
+      //Get All Posts
+      const res3 = await axios.get(
+        `/api/get/posts/user/all?userID=${res.data.ref["@ref"].id}`
+      );
+      setPosts(res3.data.data);
+
+      //Get All da Images
+      const res4 = await axios.get(
+        `/api/get/posts/user/byType?userID=${res.data.ref["@ref"].id}&type=media`
+      );
+      setImages(res4.data.data);
     };
 
     run();
@@ -82,16 +103,39 @@ export default function Profile() {
     //According to our state, send request
     if (followState === 1) {
       setFollowState(2);
-      setTotalFollowers(totalFollowers + 1);
       document.getElementById("follow").play();
+
+      //Add it to followers array
+      const buf = [];
+      for (let i = 0; i < followers.length; i++) {
+        buf.push(followers[i]);
+      }
+      buf.push({ data: payload });
+      setFollowers(buf);
+
+      //API
       const res = await axios.post("/api/create/follow", payload);
       console.log(res);
     }
 
     if (followState === 2) {
       setFollowState(1);
-      setTotalFollowers(totalFollowers - 1);
       document.getElementById("unfollow").play();
+
+      //Remove from Followers array
+      const buf = [];
+      for (let i = 0; i < followers.length; i++) {
+        const element = followers[i];
+        if (
+          element.data.targeteeInfo.server === ourUser.serverName &&
+          element.data.targeteeInfo.name === ourUser.username
+        ) {
+          //NOTHING BOI
+        } else {
+          buf.push(element);
+        }
+      }
+      setFollowers(buf);
       const res = await axios.delete(
         `/api/delete/unfollow?target=${userID}&targetee=${ourID["@ref"].id}`
       );
@@ -99,6 +143,70 @@ export default function Profile() {
     }
 
     console.log(payload);
+  };
+
+  const openFollowerModal = () => {
+    setModalState(1);
+  };
+
+  const openImageModal = () => {
+    setModalState(2);
+    const payload = {
+      url: images[0].data.image.url,
+      dims: calculateDimentions(
+        images[0].data.image.dimensions.height,
+        images[0].data.image.dimensions.width,
+        480,
+        420
+      ),
+      index: 0,
+      canLeft: false,
+      canRight: images.length > 1 ? true : false,
+    };
+    console.log(payload);
+    setModalImage(payload);
+  };
+
+  const openPostModal = () => {
+    setModalState(3);
+  };
+
+  const scrollForward = () => {
+    const targetIndex = modalImage.index + 1;
+    const payload = {
+      url: images[targetIndex].data.image.url,
+      dims: calculateDimentions(
+        images[targetIndex].data.image.dimensions.height,
+        images[targetIndex].data.image.dimensions.width,
+        480,
+        420
+      ),
+      index: targetIndex,
+      canLeft: true,
+      canRight: images.length > targetIndex + 1 ? true : false,
+    };
+
+    console.log(payload);
+    setModalImage(payload);
+  };
+
+  const scrollBackwards = () => {
+    const targetIndex = modalImage.index - 1;
+    const payload = {
+      url: images[targetIndex].data.image.url,
+      dims: calculateDimentions(
+        images[targetIndex].data.image.dimensions.height,
+        images[targetIndex].data.image.dimensions.width,
+        480,
+        420
+      ),
+      index: targetIndex,
+      canLeft: targetIndex === 0 ? false : true,
+      canRight: true,
+    };
+
+    console.log(payload);
+    setModalImage(payload);
   };
 
   return (
@@ -187,25 +295,27 @@ export default function Profile() {
           </div>
 
           <div className="bigboi">
-            <p className="followers">
+            <p className="followers" onClick={() => openFollowerModal()}>
               <Image src="/followers_PFEX.png" width={35} height={35}></Image>
-              <span className="followText">{totalFollowers}</span>
+              <span className="followText">{followers.length}</span>
               <span style={{ fontSize: "0.5em", marginTop: "10px" }}>
-                follower{s(totalFollowers)}
+                follower{s(followers.length)}
               </span>
             </p>
 
-            <p className="followers">
+            <p className="followers" onClick={() => openImageModal()}>
               <Image src="/pics_PFEX.png" width={35} height={35}></Image>
-              <span className="followText">18</span>
-              <span style={{ fontSize: "0.5em", marginTop: "10px" }}>pics</span>
+              <span className="followText">{images.length}</span>
+              <span style={{ fontSize: "0.5em", marginTop: "10px" }}>
+                pic{s(images.length)}
+              </span>
             </p>
 
-            <p className="followers">
+            <p className="followers" onClick={() => openPostModal()}>
               <Image src="/post_PFEX.png" width={35} height={35}></Image>
-              <span className="followText">28</span>
+              <span className="followText">{posts.length}</span>
               <span style={{ fontSize: "0.5em", marginTop: "10px" }}>
-                posts
+                post{s(posts.length)}
               </span>
             </p>
           </div>
@@ -213,9 +323,136 @@ export default function Profile() {
       </div>
 
       <div className="sfx">
-        <audio id="follow" src="/follow.mp3"/>
-        <audio id="unfollow" src="/unfollow.wav"/>
+        <audio id="follow" src="/follow.mp3" />
+        <audio id="unfollow" src="/unfollow.wav" />
       </div>
+
+      {modalState !== 0 && (
+        <div className="zoomBlanket">
+          <div className="zoomCurtain"></div>
+
+          <p className="zoomX" onClick={() => setModalState(0)}>
+            X
+          </p>
+
+          <div className="zoomContentWrapper">
+            {modalState === 1 && (
+              <div className="zoomContent">
+                <h1 className="zoomHeading">followers</h1>
+                <br />
+                <br />
+                {followers.map((e) => (
+                  <>
+                    <div className="zoomElement">
+                      <a
+                        href={`/${e.data.targeteeInfo.server}/${e.data.targeteeInfo.name}`}
+                      >
+                        <img
+                          src={e.data.targeteeInfo.pfpic}
+                          className="zoomImage"
+                        />
+                      </a>
+                      <p
+                        style={{
+                          paddingLeft: "10px",
+                          fontSize: "1.4em",
+                          fontWeight: "600 ",
+                        }}
+                      >
+                        {e.data.targeteeInfo.name}
+                      </p>
+
+                      <p style={{ paddingLeft: "50px" }}>
+                        Since {moment(e.data.toc).format("DD/MM/YY ")}
+                      </p>
+                    </div>
+                  </>
+                ))}
+              </div>
+            )}
+
+            {modalState === 2 && (
+              <div className="zoomContent">
+                <h1 className="zoomHeading">pictures</h1>
+                <br />
+                <br />
+                <div style={{ display: "flex", justifyContent: "center" }}>
+                  <img
+                    className="zoomImageDisplay"
+                    src={modalImage.url}
+                    style={{
+                      width: `${modalImage.dims.width}px`,
+                      height: `${modalImage.dims.height}px`,
+                      marginTop: "14px",
+                    }}
+                  ></img>
+                </div>
+
+                <div className="zoomUnderContent">
+                  {modalImage.canLeft ? (
+                    <p
+                      className="enabledArrow"
+                      onClick={() => scrollBackwards()}
+                    >
+                      ←
+                    </p>
+                  ) : (
+                    <p className="disabledArrow">←</p>
+                  )}
+
+                  <p style={{ fontSize: "1.5em" }}>{modalImage.index + 1}</p>
+
+                  {modalImage.canRight ? (
+                    <p className="enabledArrow" onClick={() => scrollForward()}>
+                      →
+                    </p>
+                  ) : (
+                    <p className="disabledArrow">→</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {modalState === 3 && (
+              <div className="zoomContent">
+                <h1 className="zoomHeading" style={{ marginLeft: "20px" }}>
+                  posts
+                </h1>
+                <br />
+                <br />
+                {posts.map((e) => (
+                  <a href={`/post/${e.ref["@ref"].id}`}>
+                    <div className="zoomElement">
+                      <img src={e.data.userInfo.pfpic} className="zoomImage" />
+                      <p
+                        style={{
+                          paddingLeft: "10px",
+                          width: "100px",
+                          height: "20px", 
+                          textOverflow: "ellipsis",
+                          overflow:"hidden",
+                          whiteSpace:"no-wrap",
+                          fontWeight:500
+                        }}
+                      >
+                        {e.data.text}{e.data.text}{e.data.text}
+                      </p>
+                      <p style={{ paddingLeft: "220px", position: "absolute" }}>
+                        {e.data.type} post
+                      </p>
+
+                      <p style={{ paddingLeft: "340px", position: "absolute" }}>
+                        {moment(e.data.toc).format("MM/DD/YY")}
+                      </p>
+                    </div>
+                    <br />
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <style jsx>
         {`
@@ -343,10 +580,100 @@ export default function Profile() {
             font-size: 2em;
             margin-left: 5px;
             cursor: pointer;
+            transition: all 500ms ease;
+          }
+
+          .followers:hover {
+            color: #8c0900;
           }
 
           .followText {
             margin-left: 5px;
+          }
+
+          .zoomBlanket {
+            position: fixed;
+            z-index: 100;
+          }
+
+          .zoomCurtain {
+            position: absolute;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.9);
+          }
+
+          .zoomContent {
+            z-index: 105;
+            color: black;
+            background-color: white;
+            width: 450px;
+            height: 500px;
+            margin-left: 400px;
+            margin-top: 50px;
+            border-radius: 50px;
+            padding-left: 20px;
+            padding-right: 20px;
+          }
+
+          .zoomContentWrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            -webkit-transform: translate(0%, 0%);
+            transform: translate(0%, 0%);
+          }
+
+          .zoomX {
+            position: absolute;
+            margin-top: 10px;
+            margin-left: 10px;
+            color: white;
+            z-index: 103;
+            font-family: var(--mainfont);
+            font-size: 1.2em;
+            font-weight: 300;
+            cursor: pointer;
+          }
+
+          .zoomHeading {
+            text-align: center;
+            padding-left: 150px;
+            margin-top: 4px;
+            position: fixed;
+          }
+
+          .zoomElement {
+            z-index: 200;
+            margin-top: -10px;
+            display: flex;
+            align-items: center;
+          }
+
+          .zoomImage {
+            height: 45px;
+            width: 45px;
+            margin-top: 0px;
+            border-radius: 50%;
+          }
+
+          .zoomUnderContent {
+            display: flex;
+            justify-content: space-evenly;
+            align-items: center;
+            margin-top: -10px;
+          }
+
+          .enabledArrow {
+            font-size: 2em;
+            color: black;
+            cursor: pointer;
+          }
+
+          .disabledArrow {
+            font-size: 2em;
+            color: grey;
+            cursor: not-allowed;
           }
         `}
       </style>
