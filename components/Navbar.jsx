@@ -64,7 +64,7 @@ export default function Navbar() {
         userInfo: {
           name: user.username,
           pfpic: user.pfpic,
-          server : user.serverName
+          server: user.serverName,
         },
         tags: [],
         type: "text",
@@ -78,7 +78,7 @@ export default function Navbar() {
         userInfo: {
           name: user.username,
           pfpic: user.pfpic,
-          server : user.serverName
+          server: user.serverName,
         },
         tags: [],
         type: "media",
@@ -99,7 +99,7 @@ export default function Navbar() {
         userInfo: {
           name: user.username,
           pfpic: user.pfpic,
-          server : user.serverName
+          server: user.serverName,
         },
         tags: [],
         type: "gif",
@@ -231,7 +231,7 @@ export default function Navbar() {
     };
     input.click();
   };
-  
+
   return (
     <>
       <div className="main2">
@@ -401,6 +401,21 @@ export default function Navbar() {
                 <span>ludus</span>
               )}
             </p>
+
+            <div>
+              <p
+                style={{
+                  position: "absolute",
+                  marginTop: "-50px",
+                  marginLeft: "120px",
+                  fontFamily: "var(--mainfont)",
+                  fontWeight: 800,
+                  color: "#144091",
+                }}
+              >
+                {user.serverName}
+              </p>
+            </div>
           </a>
 
           <a className="item" href="/o/home">

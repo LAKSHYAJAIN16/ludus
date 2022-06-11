@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import moment from "moment";
 import axios from "axios";
@@ -24,6 +24,11 @@ export default function HomePost({ post, user }) {
   //Reactions
   const [reactions, setReactions] = useState([]);
   const [uiReactions, setUiReactions] = useState([]);
+
+  //Comment State
+  const [showCommentUI, setShowCommentUI] = useState(false);
+  const [uiComments, setUiComments] = useState([]);
+  const commentInputThingy = useRef();
 
   useEffect(() => {
     const run = async () => {
@@ -61,7 +66,16 @@ export default function HomePost({ post, user }) {
       //Calculate UI
       recalculateReactionUI(reactions.data.data);
 
-      console.log(reactions.data.data);
+      //Get Comment Data
+      const commentData = await axios.get(
+        `/api/get/comments/each-post-biased?postID=${post.ref["@ref"].id}&userID=${user_t["@ref"].id}`
+      );
+      const actComData = commentData.data;
+      if (actComData.actuals.length !== 0) {
+        console.log(commentData.data);
+        setShowCommentUI(true);
+        setUiComments(actComData.actuals.reverse());
+      }
     };
 
     run();
@@ -151,12 +165,54 @@ export default function HomePost({ post, user }) {
       }
     }
 
-    console.log({ returnBuf, index, counts });
     setUiReactions(returnBuf);
   };
 
   const openReactionMenu = () => {
     setShowReactionMenu(!showReactionMenu);
+  };
+
+  const comment = async (key, text) => {
+    if (key === "Enter") {
+      //Get User
+      const user = JSON.parse(localStorage.getItem("u_u"));
+
+      //Compile Payload
+      const payload = {
+        userID: userRef["@ref"].id,
+        postID: post.ref["@ref"].id,
+        text: text,
+        userInfo: {
+          server: user.serverName,
+          name: user.username,
+          pfpic: user.pfpic,
+        },
+      };
+
+      //Remove text from input
+      document.getElementById("commentInput").value = "";
+      commentInputThingy.current.value = "";
+
+      //Unfocus
+      const tmp = document.createElement("input");
+      document.body.appendChild(tmp);
+      tmp.style.position = "fixed"
+      tmp.focus();
+      document.body.removeChild(tmp);
+
+      //Add to UI Buffer
+      let buf = [];
+      buf.push({ data: payload });
+      for (let i = 0; i < uiComments.length; i++) {
+        const element = uiComments[i];
+        buf.push(element);
+      }
+      setUiComments(buf);
+
+      //API
+      const res = await axios.post("/api/create/comment", payload);
+      console.log(res);
+    }
   };
 
   return (
@@ -536,7 +592,7 @@ export default function HomePost({ post, user }) {
             <motion.div
               whileHover={{ scale: 1.2 }}
               whileTap={{ scale: 0.9 }}
-              style={{ cursor: "pointer", marginLeft: "20px" }}
+              style={{ cursor: "pointer", marginLeft: "5px" }}
               onClick={() => openReactionMenu()}
             >
               <Image src="/emoji_MARKER.png" height={20} width={20} />
@@ -544,7 +600,63 @@ export default function HomePost({ post, user }) {
                 {showReactionMenu === false ? "+" : "x"}
               </span>
             </motion.div>
+
+            <motion.div
+              className="commentNameWrapper"
+              style={{ marginLeft: "100px", cursor: "pointer" }}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setShowCommentUI(true)}
+            >
+              <Image src="/comment_REA.png" height={24} width={24} />
+              {/* <p style={{ marginTop: "-29px", marginLeft: "25px" }}>Comment</p> */}
+            </motion.div>
           </div>
+
+          {showCommentUI && (
+            <div className="comments">
+              <div className="commentUI">
+                <img
+                  src={user.pfpic}
+                  width={35}
+                  height={35}
+                  className="commentPic"
+                />
+                <input
+                  className="commentInput"
+                  type="text"
+                  placeholder="what dy got to say?"
+                  id="commentInput"
+                  onKeyDown={(e) => comment(e.key, e.target.value)}
+                  ref={commentInputThingy}
+                ></input>
+              </div>
+
+              {uiComments.map((e) => (
+                <div className="commentDynamic">
+                  <a
+                    href={`/${e.data.userInfo.server}/${e.data.userInfo.name}`}
+                  >
+                    <img
+                      src={e.data.userInfo.pfpic}
+                      width={35}
+                      height={35}
+                      className="commentPic"
+                    />
+                  </a>
+                  <div className="commentRight">
+                    <p className="commentUsername">
+                      {e.data.userInfo.name}
+                      <span className="commentTOC">
+                        {moment(e.data.toc).fromNow()}
+                      </span>
+                    </p>
+                    <p className="commentContent">{e.data.text}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -588,6 +700,68 @@ export default function HomePost({ post, user }) {
             display: flex;
             flex-direction: column;
             justify-content: center;
+          }
+
+          .commentUI {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+          }
+
+          .commentPic {
+            border-radius: 50%;
+            border: 1px solid black;
+          }
+
+          .commentInput {
+            margin-top: 0px;
+            margin-left: 7px;
+            width: 230px;
+            border: none;
+            background-color: transparent;
+            font-size: 0.9em;
+            font-family: var(--mainfont);
+            background-color: transparent;
+            background-image: linear-gradient(gray, gray);
+            background-size: 10% 3px;
+            background-repeat: no-repeat;
+            background-position: center 110%;
+            transition: all 0.3s ease;
+            text-align: center;
+          }
+
+          .commentInput:focus {
+            outline: none;
+            background-image: linear-gradient(black, black);
+            background-size: 100% 3px;
+          }
+
+          .commentRight {
+            display: flex;
+            flex-direction: column;
+          }
+
+          .commentDynamic {
+            margin-top: 10px;
+            display: flex;
+          }
+
+          .commentUsername {
+            margin-top: 0px;
+            margin-bottom: 0px;
+            margin-left: 5px;
+            font-weight: 800;
+          }
+
+          .commentContent {
+            margin-top: 0px;
+            margin-left: 5px;
+          }
+
+          .commentTOC {
+            font-weight: 400;
+            font-size: 0.8em;
+            padding-left : 3px;
           }
         `}
       </style>
