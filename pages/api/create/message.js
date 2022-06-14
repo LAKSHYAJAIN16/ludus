@@ -9,18 +9,14 @@ export default async function handler(req, res) {
   //Compile Payload
   const payload = {
     user: Ref(Collection("users"), req.body.userID),
-    post : Ref(Collection("posts"), req.body.postID),
-    text: req.body.text,
-    toc: new Date(Date.now()).toISOString(),
-    userInfo: req.body.userInfo,
-    id : randomBytes(16).toString("hex"),
-    thread : "",
+    id : randomBytes(10).toString("hex"),
+    ...req.body
   };
 
   //FQL
   try {
     const docs = await fauna.query(
-      Create(Collection("comments"), { data: payload })
+      Create(Collection("messages"), { data: payload })
     );
     res.status(200).send(docs);
   } catch (err) {

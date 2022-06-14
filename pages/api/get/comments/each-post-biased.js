@@ -78,15 +78,22 @@ export default async function handler(req, res) {
       }
     }
 
-    res
-      .status(200)
-      .send({
-        actuals,
-        finElements,
-        finFollowers,
-        actualFollowers,
-        actualDocs,
-      });
+    //Sort them as inits and replies
+    const inits = [];
+    const replies = [];
+    actuals.map((e) => {
+      if (e.data.thread === "") {
+        inits.push(e);
+      } else {
+        replies.push(e);
+      }
+    });
+
+    res.status(200).send({
+      actuals,
+      inits,
+      replies,
+    });
   } catch (err) {
     res.json(err);
   }

@@ -428,9 +428,9 @@ export default function Navbar() {
             <p style={{ marginLeft: "3px" }}>trending</p>
           </a>
 
-          <a className="item" href="/o/class-feed">
+          <a className="item" href="/o/class-chat">
             <Image src="/class_S.png" width={30} height={30} />
-            <p style={{ marginLeft: "4px" }}>class feed</p>
+            <p style={{ marginLeft: "4px" }}>class chat</p>
           </a>
 
           <a className="item" href="/o/direct-msgs">

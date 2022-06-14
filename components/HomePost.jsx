@@ -27,7 +27,8 @@ export default function HomePost({ post, user }) {
 
   //Comment State
   const [showCommentUI, setShowCommentUI] = useState(false);
-  const [uiComments, setUiComments] = useState([]);
+  const [uiInitialThreadComments, setUiInitialThreadComments] = useState([]);
+  const [uiReplyThreadComments, setUiReplyThreadComments] = useState([]);
   const commentInputThingy = useRef();
 
   useEffect(() => {
@@ -72,9 +73,9 @@ export default function HomePost({ post, user }) {
       );
       const actComData = commentData.data;
       if (actComData.actuals.length !== 0) {
-        console.log(commentData.data);
         setShowCommentUI(true);
-        setUiComments(actComData.actuals.reverse());
+        setUiInitialThreadComments(actComData.inits.reverse());
+        setUiReplyThreadComments(actComData.replies.reverse());
       }
     };
 
@@ -196,23 +197,290 @@ export default function HomePost({ post, user }) {
       //Unfocus
       const tmp = document.createElement("input");
       document.body.appendChild(tmp);
-      tmp.style.position = "fixed"
+      tmp.style.position = "fixed";
       tmp.focus();
       document.body.removeChild(tmp);
 
       //Add to UI Buffer
       let buf = [];
       buf.push({ data: payload });
-      for (let i = 0; i < uiComments.length; i++) {
-        const element = uiComments[i];
+      for (let i = 0; i < uiInitialThreadComments.length; i++) {
+        const element = uiInitialThreadComments[i];
         buf.push(element);
       }
-      setUiComments(buf);
+      setUiInitialThreadComments(buf);
 
       //API
       const res = await axios.post("/api/create/comment", payload);
       console.log(res);
     }
+  };
+
+  const CommentElement = ({ e, replyComments }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [ourReplies, setOurReplies] = useState([]);
+    const [showReplyButton, setShowReplyButton] = useState(false);
+    const inputThingyButLocal = useRef();
+
+    useEffect(() => {
+      //Loop through replyComments
+      let buf = [];
+      for (let i = 0; i < replyComments.length; i++) {
+        const element = replyComments[i];
+        let a = element.data.thread;
+        let b = e.data.id;
+        const is = a === b ? true : false;
+
+        if (is === true) {
+          buf.push(element);
+        }
+      }
+
+      setOurReplies(buf);
+    }, []);
+
+    const replyFN = async (key, text) => {
+      if (key === "Enter") {
+        //Remove text from input
+        inputThingyButLocal.current.value = "";
+
+        //Unfocus
+        const tmp = document.createElement("input");
+        document.body.appendChild(tmp);
+        tmp.style.position = "fixed";
+        tmp.focus();
+        document.body.removeChild(tmp);
+        //Get User
+        const userA = JSON.parse(localStorage.getItem("u_u"));
+
+        //Compile Payload
+        const thread = e.data.id;
+        const payload = {
+          userID: userRef["@ref"].id,
+          postID: post.ref["@ref"].id,
+          text: text,
+          userInfo: {
+            server: userA.serverName,
+            name: userA.username,
+            pfpic: userA.pfpic,
+          },
+          thread: thread,
+        };
+        console.log(payload);
+
+        //Add to UI
+        let buf = [];
+        buf.push({ data: payload });
+        for (let i = 0; i < ourReplies.length; i++) {
+          const element = ourReplies[i];
+          buf.push(element);
+        }
+        setOurReplies(buf);
+
+        //API
+        const res = await axios.post("/api/create/reply-comment", payload);
+        console.log(res);
+      }
+    };
+
+    return (
+      <>
+        <div
+          className="commentDynamic"
+          onMouseEnter={() => setShowReplyButton(true)}
+          onMouseLeave={() => setShowReplyButton(false)}
+        >
+          <a href={`/${e.data.userInfo.server}/${e.data.userInfo.name}`}>
+            <img
+              src={e.data.userInfo.pfpic}
+              width={35}
+              height={35}
+              className="commentPic"
+            />
+          </a>
+
+          <div className="commentRight">
+            <p className="commentUsername">
+              {e.data.userInfo.name}
+              <span className="commentTOC">{moment(e.data.toc).fromNow()}</span>
+            </p>
+            <p className="commentContent">{e.data.text}</p>
+          </div>
+
+          <motion.div
+            style={{
+              marginLeft: "300px",
+              position: "absolute",
+              marginTop: "10px",
+              cursor: "pointer",
+            }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+          >
+            <Image
+              src="/reply_REA.png"
+              height={14}
+              width={14}
+              onClick={() => setIsEditing(!isEditing)}
+            />
+          </motion.div>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          {isEditing === true && (
+            <div className="cInput">
+              <img
+                src={user.pfpic}
+                className="commentPic"
+                height={30}
+                width={30}
+              />
+
+              <input
+                type="text"
+                placeholder="whatcha reply m8?"
+                className="cInputActual"
+                ref={inputThingyButLocal}
+                onKeyDown={(e) =>
+                  replyFN(e.key, inputThingyButLocal.current.value)
+                }
+              ></input>
+
+              <br />
+            </div>
+          )}
+
+          {ourReplies.map((e, idx) => (
+            <>
+              {idx === 0 ? (
+                <div
+                  className="cInput"
+                  style={{
+                    marginTop: `${isEditing === true ? "-3" : "-15"}px`,
+                  }}
+                >
+                  <img
+                    src={e.data.userInfo.pfpic}
+                    className="commentPic"
+                    height={30}
+                    width={30}
+                  />
+
+                  <div className="commentRight">
+                    <p
+                      className="commentUsername"
+                      style={{ fontSize: "0.8em", marginTop: "10px" }}
+                    >
+                      {e.data.userInfo.name}
+                      <span className="commentTOC">
+                        {moment(e.data.toc).fromNow()}
+                      </span>
+                    </p>
+                    <p className="commentContent">{e.data.text}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="cInput" style={{ marginTop: "-15px" }}>
+                  <img
+                    src={e.data.userInfo.pfpic}
+                    className="commentPic"
+                    height={30}
+                    width={30}
+                  />
+
+                  <div className="commentRight">
+                    <p
+                      className="commentUsername"
+                      style={{ fontSize: "0.8em", marginTop: "10px" }}
+                    >
+                      {e.data.userInfo.name}
+                      <span className="commentTOC">
+                        {moment(e.data.toc).fromNow()}
+                      </span>
+                    </p>
+                    <p className="commentContent">{e.data.text}</p>
+                  </div>
+                </div>
+              )}
+            </>
+          ))}
+        </div>
+
+        <style jsx>
+          {`
+            .commentPic {
+              border-radius: 50%;
+              border: 1px solid black;
+            }
+
+            .commentDynamic {
+              margin-top: 10px;
+              display: flex;
+            }
+
+            .commentUsername {
+              margin-top: 0px;
+              margin-bottom: 0px;
+              margin-left: 5px;
+              font-weight: 800;
+            }
+
+            .commentContent {
+              margin-top: 0px;
+              margin-left: 5px;
+            }
+
+            .commentTOC {
+              font-weight: 400;
+              font-size: 0.8em;
+              padding-left: 3px;
+            }
+
+            .commentReply {
+              position: absolute;
+              margin-left: 300px;
+              margin-top: 10px;
+              cursor: pointer;
+            }
+
+            .cInput {
+              margin-top: 0px;
+              margin-bottom: 0px;
+              margin-left: 30px;
+              display: flex;
+              align-items: center;
+            }
+
+            .cInputActual {
+              margin-top: 0px;
+              margin-left: 7px;
+              width: 230px;
+              border: none;
+              background-color: transparent;
+              font-size: 0.9em;
+              font-family: var(--mainfont);
+              background-color: transparent;
+              background-image: linear-gradient(gray, gray);
+              background-size: 10% 3px;
+              background-repeat: no-repeat;
+              background-position: center 110%;
+              transition: all 0.3s ease;
+              text-align: center;
+            }
+
+            .cInputActual:focus {
+              outline: none;
+              background-image: linear-gradient(black, black);
+              background-size: 100% 3px;
+            }
+
+            .cActual {
+              margin-top: 10px;
+            }
+          `}
+        </style>
+      </>
+    );
   };
 
   return (
@@ -606,7 +874,7 @@ export default function HomePost({ post, user }) {
               style={{ marginLeft: "100px", cursor: "pointer" }}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              onClick={() => setShowCommentUI(true)}
+              onClick={() => setShowCommentUI(!showCommentUI)}
             >
               <Image src="/comment_REA.png" height={24} width={24} />
               {/* <p style={{ marginTop: "-29px", marginLeft: "25px" }}>Comment</p> */}
@@ -632,28 +900,8 @@ export default function HomePost({ post, user }) {
                 ></input>
               </div>
 
-              {uiComments.map((e) => (
-                <div className="commentDynamic">
-                  <a
-                    href={`/${e.data.userInfo.server}/${e.data.userInfo.name}`}
-                  >
-                    <img
-                      src={e.data.userInfo.pfpic}
-                      width={35}
-                      height={35}
-                      className="commentPic"
-                    />
-                  </a>
-                  <div className="commentRight">
-                    <p className="commentUsername">
-                      {e.data.userInfo.name}
-                      <span className="commentTOC">
-                        {moment(e.data.toc).fromNow()}
-                      </span>
-                    </p>
-                    <p className="commentContent">{e.data.text}</p>
-                  </div>
-                </div>
+              {uiInitialThreadComments.map((e) => (
+                <CommentElement e={e} replyComments={uiReplyThreadComments} />
               ))}
             </div>
           )}
@@ -761,7 +1009,14 @@ export default function HomePost({ post, user }) {
           .commentTOC {
             font-weight: 400;
             font-size: 0.8em;
-            padding-left : 3px;
+            padding-left: 3px;
+          }
+
+          .commentReply {
+            position: absolute;
+            margin-left: 300px;
+            margin-top: 10px;
+            cursor: pointer;
           }
         `}
       </style>

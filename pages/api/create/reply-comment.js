@@ -14,7 +14,7 @@ export default async function handler(req, res) {
     toc: new Date(Date.now()).toISOString(),
     userInfo: req.body.userInfo,
     id : randomBytes(16).toString("hex"),
-    thread : "",
+    thread : req.body.thread,
   };
 
   //FQL
