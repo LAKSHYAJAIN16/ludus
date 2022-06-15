@@ -1,4 +1,4 @@
-import { client } from "../../../../lib/fauna";
+import { client } from "../../../../../lib/fauna";
 
 import {
   Map,
@@ -8,6 +8,8 @@ import {
   Intersection,
   Match,
   Index,
+  Ref,
+  Collection,
 } from "faunadb";
 
 export default async function handler(req, res) {
@@ -17,6 +19,7 @@ export default async function handler(req, res) {
   //Get Params
   const server = req.query.server;
   const grade = req.query.grade;
+  const beforeID = req.query.bID;
   const size = parseInt(req.query.size);
 
   //FQL
@@ -26,9 +29,9 @@ export default async function handler(req, res) {
         Paginate(
           Intersection(
             Match(Index("messages_byServer"), server),
-            Match(Index("messages_byGrade"), grade),
+            Match(Index("messages_byGrade"), grade)
           ),
-          { size: size, before: null }
+          { size: size, before: Ref(Collection("messages"), beforeID) }
         ),
         Lambda((x) => Get(x))
       )

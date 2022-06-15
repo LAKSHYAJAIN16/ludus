@@ -18,6 +18,7 @@ export default async function handler(req, res) {
   const server = req.query.server;
   const grade = req.query.grade;
   const section = req.query.section;
+  const size = parseInt(req.query.size)
 
   //FQL
   try {
@@ -28,9 +29,10 @@ export default async function handler(req, res) {
             Match(Index("messages_byServer"), server),
             Match(Index("messages_byGrade"), grade),
             Match(Index("messages_bySection"), section)
-          )
+          ),
+          { size: size, before: null }
         ),
-        Lambda(x => Get(x))
+        Lambda((x) => Get(x))
       )
     );
     res.status(200).send(docs);

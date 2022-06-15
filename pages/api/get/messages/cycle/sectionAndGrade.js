@@ -8,6 +8,8 @@ import {
   Intersection,
   Match,
   Index,
+  Ref,
+  Collection,
 } from "faunadb";
 
 export default async function handler(req, res) {
@@ -17,6 +19,8 @@ export default async function handler(req, res) {
   //Get Params
   const server = req.query.server;
   const grade = req.query.grade;
+  const section = req.query.section;
+  const beforeID = req.query.bID;
   const size = parseInt(req.query.size);
 
   //FQL
@@ -27,8 +31,9 @@ export default async function handler(req, res) {
           Intersection(
             Match(Index("messages_byServer"), server),
             Match(Index("messages_byGrade"), grade),
+            Match(Index("messages_bySection"), section)
           ),
-          { size: size, before: null }
+          { size: size, before: Ref(Collection("messages"), beforeID) }
         ),
         Lambda((x) => Get(x))
       )

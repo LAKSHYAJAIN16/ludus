@@ -17,15 +17,20 @@ export default async function handler(req, res) {
 
   //Get Params
   const userID = req.query.id;
-
+  const size = parseInt(req.query.size)
+  
   //FQL
   try {
     const docs = await fauna.query(
       Map(
         Paginate(
-          Match(Index("messages_byUser"), Ref(Collection("users"), userID))
+          Match(Index("messages_byUser"), Ref(Collection("users"), userID)),
+          {
+            size: size,
+            before: null,
+          }
         ),
-        Lambda(x => Get(x))
+        Lambda((x) => Get(x))
       )
     );
     res.status(200).send(docs);

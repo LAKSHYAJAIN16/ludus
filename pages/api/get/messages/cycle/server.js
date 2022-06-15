@@ -1,6 +1,15 @@
 import { client } from "../../../../lib/fauna";
 
-import { Map, Paginate, Lambda, Get, Match, Index } from "faunadb";
+import {
+  Map,
+  Paginate,
+  Lambda,
+  Get,
+  Match,
+  Index,
+  Ref,
+  Collection,
+} from "faunadb";
 
 export default async function handler(req, res) {
   //Init Fauna
@@ -8,6 +17,7 @@ export default async function handler(req, res) {
 
   //Get Params
   const server = req.query.server;
+  const backgroundID = req.query.bID;
   const size = parseInt(req.query.size);
 
   //FQL
@@ -16,7 +26,7 @@ export default async function handler(req, res) {
       Map(
         Paginate(Match(Index("messages_byServer"), server), {
           size: size,
-          before: null,
+          before: Ref(Collection("messages"), backgroundID),
         }),
         Lambda((x) => Get(x))
       )

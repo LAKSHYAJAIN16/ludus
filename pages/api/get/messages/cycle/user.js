@@ -5,9 +5,10 @@ import {
   Paginate,
   Lambda,
   Get,
-  Intersection,
   Match,
   Index,
+  Ref,
+  Collection,
 } from "faunadb";
 
 export default async function handler(req, res) {
@@ -15,20 +16,20 @@ export default async function handler(req, res) {
   const fauna = client;
 
   //Get Params
-  const server = req.query.server;
-  const grade = req.query.grade;
-  const size = parseInt(req.query.size);
-
+  const userID = req.query.id;
+  const bID = req.query.bID;
+  const size = parseInt(req.query.size)
+  
   //FQL
   try {
     const docs = await fauna.query(
       Map(
         Paginate(
-          Intersection(
-            Match(Index("messages_byServer"), server),
-            Match(Index("messages_byGrade"), grade),
-          ),
-          { size: size, before: null }
+          Match(Index("messages_byUser"), Ref(Collection("users"), userID)),
+          {
+            size: size,
+            before: Ref(Collection("messages"), bID),
+          }
         ),
         Lambda((x) => Get(x))
       )
