@@ -15,30 +15,48 @@ export default function ClassChat() {
   //Text Input Ref
   const textInput = useRef();
 
+  //Messages
+  const [messagesClass, setMessagesClass] = useState([]);
+  const [messagesSection, setMessagesSection] = useState([]);
+
+  //Nexts
+  const [nextClassCallback, setNextClassCallback] = useState("");
+  const [nextSectionCallback, setNextSectionCallback] = useState("");
+
+  //SIZE for callback array
+  const SIZE = 3;
+
   useEffect(() => {
+    //Get User
     const temp_user = JSON.parse(localStorage.getItem("u_u"));
     setUser(temp_user);
+    retrieveMessages(
+      0,
+      temp_user.grade,
+      temp_user.section,
+      temp_user.serverName
+    );
   }, []);
 
-  const message = async(text) => {
+  const message = async (text) => {
     //Get UID
     const uID = JSON.parse(localStorage.getItem("u_ref"))["@ref"].id;
 
     //Payload
     const payload = {
-      toc : new Date(Date.now()).toISOString(),
-      chatState : chatState,
-      grade : user.grade,
-      section : user.section,
-      server : user.serverName,
-      text : text,
-      userID : uID,
-      userInfo : {
-        name : user.username,
-        server : user.serverName,
-        pfpic : user.pfpic,
-      }
-    }
+      toc: new Date(Date.now()).toISOString(),
+      chatState: chatState,
+      grade: user.grade,
+      section: user.section,
+      server: user.serverName,
+      text: text,
+      userID: uID,
+      userInfo: {
+        name: user.username,
+        server: user.serverName,
+        pfpic: user.pfpic,
+      },
+    };
 
     //Remove text from Ui Input Field
     textInput.current.value = "";
@@ -48,17 +66,53 @@ export default function ClassChat() {
     console.log(res);
   };
 
+  const retrieveMessages = async (num, grade, section, server) => {
+    setChatState(num);
+    if (num === 0) {
+      const res = await axios.get(
+        `/api/get/messages/byGrade?grade=${grade}&server=${server}&size=${SIZE}`
+      );
+
+      const messages = res.data.data;
+      const afterID = res.data.before[0]["@ref"].id;
+      setMessagesClass(messages);
+      setNextClassCallback(afterID);
+      console.log(res);
+    }
+    if (num === 1) {
+      const res = await axios.get(
+        `/api/get/messages/bySectionAndGrade?grade=${grade}&server=${server}&section=${section}&size=${SIZE}`
+      );
+
+      const messages = res.data.data;
+      const afterID = res.data.before[0]["@ref"].id;
+      setMessagesSection(messages);
+      setNextSectionCallback(afterID);
+      console.log(res);
+    }
+  };
+
   return (
     <>
       <div className="main">
         <Navbar />
         <div className="side-content content">
           <div className="topSliders">
-            <button className="topButton" onClick={() => setChatState(0)}>
+            <button
+              className="topButton"
+              onClick={() =>
+                retrieveMessages(0, user.grade, user.section, user.serverName)
+              }
+            >
               {user.grade}th Grade Chat
             </button>
 
-            <button className="topButton" onClick={() => setChatState(1)}>
+            <button
+              className="topButton"
+              onClick={() =>
+                retrieveMessages(1, user.grade, user.section, user.serverName)
+              }
+            >
               {user.grade}
               {user.section} Chat
             </button>

@@ -1,4 +1,4 @@
-import { client } from "../../../../lib/fauna";
+import { client } from "../../../../../lib/fauna";
 
 import {
   Map,
