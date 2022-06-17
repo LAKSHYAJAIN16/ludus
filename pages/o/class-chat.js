@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import axios from "axios";
 import { motion } from "framer-motion";
+import moment from "moment";
+import io, { Socket } from "socket.io-client";
 
 import Navbar from "../../components/Navbar";
 
@@ -23,20 +25,61 @@ export default function ClassChat() {
   const [nextClassCallback, setNextClassCallback] = useState("");
   const [nextSectionCallback, setNextSectionCallback] = useState("");
 
+  //Socket
+  const [ourSocket, setOurSocket] = useState();
+  const [alreadyDid, setAlreadyDid] = useState(false);
+
   //SIZE for callback array
-  const SIZE = 3;
+  const SIZE = 5;
 
   useEffect(() => {
-    //Get User
-    const temp_user = JSON.parse(localStorage.getItem("u_u"));
-    setUser(temp_user);
-    retrieveMessages(
-      0,
-      temp_user.grade,
-      temp_user.section,
-      temp_user.serverName
-    );
+    const setUserStuff = () => {
+      //Get User
+      const temp_user = JSON.parse(localStorage.getItem("u_u"));
+      setUser(temp_user);
+      retrieveMessages(
+        0,
+        temp_user.grade,
+        temp_user.section,
+        temp_user.serverName
+      );
+    };
+
+    const initSocket = async () => {
+      if(alreadyDid === false){
+        await fetch("/api/_web_/init-socket");
+        const socket = io();
+  
+        //Listen to Connect Callback
+        socket.on("connect", () => {
+          console.log("connected");
+        });
+  
+        //Listen to new message callback
+        socket.on("new-message", (e) => {
+          //Parse it
+          const e_parsed = JSON.parse(e);
+          updateUIONMessage(e_parsed);
+        });
+  
+        setOurSocket(socket);
+        setAlreadyDid(true);
+      }
+    };
+
+    setUserStuff();
+    initSocket();
+
+    return () => {
+      if(ourSocket){
+        ourSocket.close();
+      }
+    }
   }, []);
+
+  const emitSocket = (code, msg) => {
+    ourSocket.emit(code, msg);
+  };
 
   const message = async (text) => {
     //Get UID
@@ -47,7 +90,7 @@ export default function ClassChat() {
       toc: new Date(Date.now()).toISOString(),
       chatState: chatState,
       grade: user.grade,
-      section: user.section,
+      section: chatState === 1 ? user.section : "hahano",
       server: user.serverName,
       text: text,
       userID: uID,
@@ -61,9 +104,55 @@ export default function ClassChat() {
     //Remove text from Ui Input Field
     textInput.current.value = "";
 
-    //Create Message
-    const res = await axios.post("/api/create/message", payload);
-    console.log(res);
+    //Add to messages Ui
+    if (chatState === 0) {
+      let buf = [];
+      for (let i = 0; i < messagesClass.length; i++) {
+        console.log(i);
+        buf.push(messagesClass[i]);
+      }
+      buf.push({ data: payload });
+      setMessagesClass(buf);
+    } else if (chatState === 1) {
+      let buf = [];
+      for (let i = 0; i < messagesSection.length; i++) {
+        const element = messagesSection[i];
+        buf.push(element);
+      }
+      buf.push({ data: payload });
+      setMessagesSection(buf);
+    }
+
+    //Emit Socket Message
+    emitSocket("create-message", JSON.stringify(payload));
+
+    // //Create Message
+    // const res = await axios.post("/api/create/message", payload);
+    // console.log(res);
+  };
+
+  const updateUIONMessage = (e_parsed) => {
+    //If the user is us, just get tf out
+    const name = e_parsed.userInfo.name;
+    const temp_user = JSON.parse(localStorage.getItem("u_u"));
+    if (e_parsed.server === temp_user.serverName && name === temp_user.username)
+      return;
+
+    //Check
+    if (
+      e_parsed.server === temp_user.serverName &&
+      e_parsed.grade === temp_user.grade
+    ) {
+      //Beginning (no modifications)
+      const curs = messagesClass;
+      console.log("OUR CURRENTS");
+      console.log(curs);
+
+      //Modifications
+      curs.push({data : e_parsed});
+      console.log("NOW : ")
+      console.log(curs)
+    }
   };
 
   const retrieveMessages = async (num, grade, section, server) => {
@@ -72,23 +161,39 @@ export default function ClassChat() {
       const res = await axios.get(
         `/api/get/messages/byGrade?grade=${grade}&server=${server}&size=${SIZE}`
       );
+      console.log(res.data.data);
 
+      //Set Messages
       const messages = res.data.data;
-      const afterID = res.data.before[0]["@ref"].id;
       setMessagesClass(messages);
-      setNextClassCallback(afterID);
-      console.log(res);
+      setMessagesClass(messages);
+
+      //Set Next Callback
+      try {
+        const afterID = res.data.before[0]["@ref"].id;
+        setNextClassCallback(afterID);
+      } catch (err) {
+        setNextClassCallback("nan-boi");
+      }
     }
     if (num === 1) {
       const res = await axios.get(
         `/api/get/messages/bySectionAndGrade?grade=${grade}&server=${server}&section=${section}&size=${SIZE}`
       );
+      console.log(res.data.data);
 
+      //Set Messages
       const messages = res.data.data;
-      const afterID = res.data.before[0]["@ref"].id;
       setMessagesSection(messages);
-      setNextSectionCallback(afterID);
-      console.log(res);
+      setMessagesSection(messages);
+
+      //Set Next Callback
+      try {
+        const afterID = res.data.before[0]["@ref"].id;
+        setNextSectionCallback(afterID);
+      } catch (err) {
+        setNextSectionCallback("nan-boi");
+      }
     }
   };
 
@@ -120,6 +225,71 @@ export default function ClassChat() {
 
           <div className="chat">
             {/* Chat Messages Blah Blah Blah */}
+            <div className="classMessages">
+              <br />
+              {chatState === 0 ? (
+                <>
+                  {messagesClass.map((e, index) => (
+                    <>
+                      <div className="message">
+                        <img
+                          src={e.data.userInfo.pfpic}
+                          className="messagepfpic"
+                        />
+
+                        <div
+                          className="messageRightPart"
+                          style={{ marginLeft: "2px" }}
+                        >
+                          <p style={{ marginTop: "0px", marginBottom: "0px" }}>
+                            <span style={{ fontWeight: 700 }}>
+                              {e.data.userInfo.name}
+                            </span>
+                            <span
+                              style={{ fontSize: "0.7em", paddingLeft: "4px" }}
+                            >
+                              {moment(e.data.toc).fromNow(false)}
+                            </span>
+                          </p>
+                          <p style={{ marginTop: "0px" }}>{e.data.text}</p>
+                        </div>
+                      </div>
+                    </>
+                  ))}
+                </>
+              ) : (
+                <>
+                  {messagesSection.map((e, index) => (
+                    <>
+                      <div className="message">
+                        <img
+                          src={e.data.userInfo.pfpic}
+                          className="messagepfpic"
+                        />
+
+                        <div
+                          className="messageRightPart"
+                          style={{ marginLeft: "2px" }}
+                        >
+                          <p style={{ marginTop: "0px", marginBottom: "0px" }}>
+                            <span style={{ fontWeight: 700 }}>
+                              {e.data.userInfo.name}
+                            </span>
+                            <span
+                              style={{ fontSize: "0.7em", paddingLeft: "4px" }}
+                            >
+                              {moment(e.data.toc).fromNow(false)}
+                            </span>
+                          </p>
+                          <p style={{ marginTop: "0px" }}>{e.data.text}</p>
+                        </div>
+                      </div>
+                    </>
+                  ))}
+                </>
+              )}
+            </div>
+
             {/* Chat Input */}
             <div className="chatInput">
               {/* Message Input */}
@@ -243,7 +413,6 @@ export default function ClassChat() {
           .chat {
             position: relative;
             display: flex;
-            justify-content: center;
             margin-left: 170px;
           }
 
@@ -286,6 +455,21 @@ export default function ClassChat() {
 
           .sendButton:hover {
             color: green;
+          }
+
+          .classMessages {
+            position: relative;
+          }
+
+          .message {
+            display: flex;
+            margin-bottom: 10px;
+          }
+
+          .messagepfpic {
+            height: 40px;
+            width: 40px;
+            border-radius: 50%;
           }
         `}
       </style>
