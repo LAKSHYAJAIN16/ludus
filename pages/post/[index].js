@@ -1,9 +1,12 @@
 import axios from "axios";
-import React, { useEffect, useState } from "react";
+import Image from "next/image";
+import React, { useEffect, useState, useRef } from "react";
 import moment from "moment";
 import { motion } from "framer-motion";
 
 import Navbar from "../../components/Navbar";
+import Loader from "../../components/Loader";
+import s from "../../lib/s";
 import calculateMargins from "../../lib/calculuateMargins";
 import EMOTION_TO_IMAGE from "../../lib/emotionVars";
 import calculateDimentions from "../../lib/calculateDimentions";
@@ -27,6 +30,16 @@ export default function Post() {
   //Zoom Vars
   const [showZoom, setShowZoom] = useState(false);
   const [zoomPercent, setZoomPercent] = useState(1);
+
+  //Comments
+  const [loadingCommentInput, setLoadingCommentInput] = useState(false);
+  const [comments, setComments] = useState([]);
+
+  //Our User
+  const [ourUser, setOurUser] = useState({});
+
+  //Refs for elements
+  const commentInputRef = useRef();
 
   useEffect(() => {
     const run = async () => {
@@ -78,6 +91,17 @@ export default function Post() {
         );
         setDims(dimensions);
       }
+
+      //Get Comment Data
+      const commentData = await axios.get(
+        `/api/get/comments/each-post?id=${temp_id}`
+      );
+      const actComData = commentData.data.data;
+      setComments(actComData);
+
+      //Get our User
+      const temp_ourUser = JSON.parse(localStorage.getItem("u_u"));
+      setOurUser(temp_ourUser);
     };
     run();
   }, []);
@@ -98,6 +122,49 @@ export default function Post() {
     // window.history.pushState({}, "Post : dash dash dash", d);
     setZoomPercent(1);
     setShowZoom(false);
+  };
+
+  const commentFN = async (e) => {
+    setLoadingCommentInput(true);
+    //Stop Reload
+    e.preventDefault();
+
+    //Get FormData (bit overkill with this method but eh)
+    const form = new FormData(e.target);
+    const formData = Object.fromEntries(form.entries());
+    const txt = formData.commentInput;
+
+    //Remove text from ui
+    commentInputRef.current.value = "";
+
+    //Disable button
+    document.getElementById("cRB").disabled = true;
+
+    //Unfocus
+    const tmp = document.createElement("input");
+    document.body.appendChild(tmp);
+    tmp.style.position = "fixed";
+    tmp.focus();
+    document.body.removeChild(tmp);
+
+    //Compile Payload
+    const payload = {
+      userID: JSON.parse(localStorage.getItem("u_ref"))["@ref"].id,
+      postID: post.ref["@ref"].id,
+      text: txt,
+      userInfo: {
+        server: ourUser.serverName,
+        name: ourUser.username,
+        pfpic: ourUser.pfpic,
+      },
+    };
+
+    //API
+    const res = await axios.post("/api/create/comment", payload);
+    console.log(res);
+
+    setLoadingCommentInput(false);
+    document.getElementById("cRB").disabled = false;
   };
 
   const ANIM_VARIANTS = {
@@ -126,6 +193,7 @@ export default function Post() {
           </h1>
 
           <div className="everything">
+            {/* Actual Post stuff */}
             <div className="post">
               <img src={post.data.userInfo.pfpic} className="profilePic" />
 
@@ -198,11 +266,98 @@ export default function Post() {
                     />
                   </>
                 ))}
+
                 <span className="reactNums">
                   {reactions.length}
                   {reactions.length !== 0 && <span>+</span>} reactions
                 </span>
+
+                <span className="comments-counter">
+                  {comments.length} comment{s(comments.length)}
+                </span>
               </div>
+            </div>
+
+            <hr />
+
+            {/* Comment Input thing */}
+            <div className="commentUI">
+              <img
+                src={ourUser.pfpic}
+                width={35}
+                height={35}
+                className="commentPic"
+              />
+              <form onSubmit={commentFN}>
+                <input
+                  className="commentInput"
+                  type="text"
+                  placeholder="what's ur reply?"
+                  id="commentInput"
+                  name="commentInput"
+                  ref={commentInputRef}
+                ></input>
+
+                <button className="commentReplyButton" type="submit" id="cRB">
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  >
+                    {loadingCommentInput ? (
+                      <Loader size={0.4} />
+                    ) : (
+                      <span>Reply</span>
+                    )}
+                  </div>
+                </button>
+              </form>
+            </div>
+
+            <br />
+
+            {/* All of the comments */}
+            <div className="all-comments">
+              {comments.map((e) => (
+                <div className="commentSingle">
+                  <img
+                    src={e.data.userInfo.pfpic}
+                    width={35}
+                    height={35}
+                    className="commentPic"
+                  />
+
+                  <div className="commentRight">
+                    <p className="commentUsername">
+                      <b>{e.data.userInfo.name}</b>{" "}
+                      <span style={{ fontSize: "0.8em" }}>
+                        {moment(e.data.toc).fromNow()}
+                      </span>
+                    </p>
+                    <p className="commentContent">{e.data.text}</p>
+                  </div>
+
+                  <motion.div
+                    style={{
+                      marginLeft: "300px",
+                      position: "absolute",
+                      marginTop: "0px",
+                      cursor: "pointer",
+                    }}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <Image
+                      src="/reply_REA.png"
+                      height={14}
+                      width={14}
+                      onClick={() => setIsEditing(!isEditing)}
+                    />
+                  </motion.div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -347,7 +502,7 @@ export default function Post() {
 
           .reactionUI {
             margin-top: 15px;
-            margin-left: 200px;
+            margin-left: 100px;
           }
 
           .subs {
@@ -401,6 +556,97 @@ export default function Post() {
             font-size: 1.2em;
             font-weight: 300;
             cursor: pointer;
+          }
+
+          .comments-counter {
+            margin-left: 100px;
+          }
+
+          .comments {
+            margin-left: 0px;
+            padding-left: 0px;
+          }
+
+          .commentUI {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+          }
+
+          .commentPic {
+            border-radius: 50%;
+            border: 1px solid black;
+            width: 45px;
+            height: 45px;
+          }
+
+          .commentInput {
+            margin-left: 0px;
+            margin-top: 0px;
+            width: 550px;
+            border: none;
+            background-color: transparent;
+            font-size: 1.1em;
+            font-family: var(--mainfont);
+            background-color: transparent;
+            background-size: 10% 3px;
+            background-repeat: no-repeat;
+            background-position: center 110%;
+            transition: all 0.3s ease;
+            text-align: center;
+          }
+
+          .commentInput:focus {
+            outline: none;
+          }
+
+          .commentReplyButton {
+            margin-top: 10px;
+            margin-bottom: 10px;
+            color: #fff;
+            cursor: pointer;
+            height: 40px;
+            width: 55px;
+            border: none;
+            background-size: 300% 100%;
+            font-weight: 400;
+            font-size: 1em;
+            font-family: var(--mainfont);
+            background-image: linear-gradient(
+              to right,
+              #25aae1,
+              #40e495,
+              #30dd8a,
+              #2bb673
+            );
+            box-shadow: 0 4px 15px 0 rgba(49, 196, 190, 0.75);
+
+            border-radius: 50px;
+            moz-transition: all 0.4s ease-in-out;
+            -o-transition: all 0.4s ease-in-out;
+            -webkit-transition: all 0.4s ease-in-out;
+            transition: all 0.4s ease-in-out;
+          }
+
+          .commentSingle {
+            margin-top: 20px;
+            display: flex;
+          }
+
+          .commentRight {
+            margin-top: 0px;
+            margin-left: 5px;
+          }
+
+          .commentUsername {
+            margin-top: 0px;
+            margin-bottom: 0px !important;
+            font-size: 0.95em;
+          }
+
+          .commentContent {
+            margin-top: 1px;
+            width: 540px;
           }
         `}
       </style>

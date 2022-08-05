@@ -3,7 +3,7 @@ import Image from "next/image";
 import axios from "axios";
 import { motion } from "framer-motion";
 import moment from "moment";
-import io, { Socket } from "socket.io-client";
+import io from "socket.io-client";
 
 import Navbar from "../../components/Navbar";
 
@@ -33,48 +33,48 @@ export default function ClassChat() {
   const SIZE = 5;
 
   useEffect(() => {
-    const setUserStuff = () => {
+    const setUserStuff = async() => {
       //Get User
       const temp_user = JSON.parse(localStorage.getItem("u_u"));
       setUser(temp_user);
-      retrieveMessages(
-        0,
-        temp_user.grade,
-        temp_user.section,
-        temp_user.serverName
-      );
-    };
 
-    const initSocket = async () => {
-      if(alreadyDid === false){
-        await fetch("/api/_web_/init-socket");
-        const socket = io();
-  
-        //Listen to Connect Callback
-        socket.on("connect", () => {
-          console.log("connected");
-        });
-  
-        //Listen to new message callback
-        socket.on("new-message", (e) => {
-          //Parse it
-          const e_parsed = JSON.parse(e);
-          updateUIONMessage(e_parsed);
-        });
-  
-        setOurSocket(socket);
+      //ONLY CALL IT ONCE (DEBUG HAHA)
+      if (alreadyDid === false) {
+        retrieveMessages(
+          0,
+          temp_user.grade,
+          temp_user.section,
+          temp_user.serverName
+        );
         setAlreadyDid(true);
       }
+
+      //Get socket
+      await fetch("/api/_web_/init-socket");
+      const socket = io();
+
+      //Listen to Connect Callback
+      socket.on("connect", () => {
+        console.log("connected");
+      });
+
+      //Listen to new message callback
+      socket.on("new-message", (e) => {
+        //Parse it
+        const e_parsed = JSON.parse(e);
+        updateUIONMessage(e_parsed);
+      });
+
+      setOurSocket(socket);
     };
 
     setUserStuff();
-    initSocket();
 
     return () => {
-      if(ourSocket){
+      if (ourSocket) {
         ourSocket.close();
       }
-    }
+    };
   }, []);
 
   const emitSocket = (code, msg) => {
@@ -108,7 +108,6 @@ export default function ClassChat() {
     if (chatState === 0) {
       let buf = [];
       for (let i = 0; i < messagesClass.length; i++) {
-        console.log(i);
         buf.push(messagesClass[i]);
       }
       buf.push({ data: payload });
@@ -134,38 +133,80 @@ export default function ClassChat() {
   const updateUIONMessage = (e_parsed) => {
     //If the user is us, just get tf out
     const name = e_parsed.userInfo.name;
+    const server = e_parsed.server;
+    const grade = e_parsed.grade;
+    const section = e_parsed.section;
+    const intent = e_parsed.chatState;
+
+    //User Vars
     const temp_user = JSON.parse(localStorage.getItem("u_u"));
-    if (e_parsed.server === temp_user.serverName && name === temp_user.username)
-      return;
+    const user_name = temp_user.username;
+    const user_server = temp_user.serverName;
+    const user_grade = temp_user.grade;
+    const user_section = temp_user.section;
 
-    //Check
-    if (
-      e_parsed.server === temp_user.serverName &&
-      e_parsed.grade === temp_user.grade
-    ) {
-      //Beginning (no modifications)
-      const curs = messagesClass;
-      console.log("OUR CURRENTS");
-      console.log(curs);
+    //MESSAGES
+    const msgs = messagesClass;
 
-      //Modifications
-      curs.push({data : e_parsed});
-      console.log("NOW : ")
-      console.log(curs)
+    // console.log({
+    //   name,
+    //   server,
+    //   grade,
+    //   section,
+    //   intent,
+    //   user_name,
+    //   user_grade,
+    //   user_section,
+    //   user_server,
+    // });
+
+    if (server === user_server && name === user_name) return;
+
+    //Check for class messages
+    if (server === user_server && grade === user_grade && intent === 0) {
+      //Get All Class Messages
+      let buf = [];
+      for (let i = 0; i < messagesClass.length; i++) {
+        const element = messagesClass[i];
+        buf.push(element);
+      }
+
+      //Check if we already have the same element
+      let unique = true;
+      for (let j = 0; j < buf.length; j++) {
+        const element2 = buf[j];
+        if (
+          element2.toc === e_parsed.toc &&
+          element2.userInfo.name === e_parsed.userInfo.name &&
+          element2.text === e_parsed.text
+        ) {
+          unique = false;
+          break;
+        }
+      }
+
+      if (unique === true) {
+        console.log(messagesClass);
+        // buf2.push({ data: e_parsed });
+        setMessagesClass(msgs);
+        console.log("works!");
+      } else {
+        console.log("NON UNIQUE MESSAGE");
+      }
+      setMessagesClass(buf);
     }
   };
 
   const retrieveMessages = async (num, grade, section, server) => {
+    console.log("it rendered");
     setChatState(num);
     if (num === 0) {
       const res = await axios.get(
         `/api/get/messages/byGrade?grade=${grade}&server=${server}&size=${SIZE}`
       );
-      console.log(res.data.data);
 
       //Set Messages
       const messages = res.data.data;
-      setMessagesClass(messages);
       setMessagesClass(messages);
 
       //Set Next Callback
@@ -184,7 +225,6 @@ export default function ClassChat() {
 
       //Set Messages
       const messages = res.data.data;
-      setMessagesSection(messages);
       setMessagesSection(messages);
 
       //Set Next Callback
