@@ -2,6 +2,7 @@ import axios from "axios";
 import moment from "moment";
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
+import { motion } from "framer-motion";
 
 import s from "../../lib/s";
 import Navbar from "../../components/Navbar";
@@ -223,6 +224,30 @@ export default function Profile() {
             <button className="followButton" onClick={() => follow()}>
               {followState === 2 ? "Unfollow" : "Follow"}
             </button>
+
+            {followState === 0 && (
+              <a href="/o/settings">
+                <motion.div
+                  whileHover={{ scale: 1.2 }}
+                  whileTap={{ scale: 0.9 }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    marginLeft: "300px",
+                    cursor: "pointer",
+                  }}
+                >
+                  <Image
+                    src="/customize_PFEX.png"
+                    height={25}
+                    width={25}
+                  ></Image>
+                  <span style={{ fontSize: "0.5em" }}>
+                    Customize how your profile looks
+                  </span>
+                </motion.div>
+              </a>
+            )}
           </h1>
           <p className="designation">
             {user.serverName} | {user.grade} | {user.section}
@@ -428,14 +453,16 @@ export default function Profile() {
                         style={{
                           paddingLeft: "10px",
                           width: "100px",
-                          height: "20px", 
+                          height: "20px",
                           textOverflow: "ellipsis",
-                          overflow:"hidden",
-                          whiteSpace:"no-wrap",
-                          fontWeight:500
+                          overflow: "hidden",
+                          whiteSpace: "no-wrap",
+                          fontWeight: 500,
                         }}
                       >
-                        {e.data.text}{e.data.text}{e.data.text}
+                        {e.data.text}
+                        {e.data.text}
+                        {e.data.text}
                       </p>
                       <p style={{ paddingLeft: "220px", position: "absolute" }}>
                         {e.data.type} post

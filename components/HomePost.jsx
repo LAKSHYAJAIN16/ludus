@@ -250,6 +250,7 @@ export default function HomePost({ post, user }) {
         tmp.style.position = "fixed";
         tmp.focus();
         document.body.removeChild(tmp);
+        
         //Get User
         const userA = JSON.parse(localStorage.getItem("u_u"));
 

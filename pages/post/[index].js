@@ -96,7 +96,7 @@ export default function Post() {
       const commentData = await axios.get(
         `/api/get/comments/each-post?id=${temp_id}`
       );
-      const actComData = commentData.data.data;
+      const actComData = commentData.data;
       setComments(actComData);
 
       //Get our User
@@ -163,8 +163,239 @@ export default function Post() {
     const res = await axios.post("/api/create/comment", payload);
     console.log(res);
 
+    //Re-enable everything
     setLoadingCommentInput(false);
     document.getElementById("cRB").disabled = false;
+
+    //Add it to our comment array
+    let buf = [];
+    const n = {
+      replies: [],
+      ...res.data,
+    };
+    buf.push(n);
+    for (let i = 0; i < comments.length; i++) {
+      buf.push(comments[i]);
+    }
+    setComments(buf);
+  };
+
+  const CommentThingy = ({ e }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [ourReplies, setOurReplies] = useState([]);
+    const inputthinglol = useRef();
+
+    useEffect(() => {
+      setOurReplies(e.replies);
+    }, []);
+
+    const replyFN = async (ef) => {
+      //Stop Reload
+      ef.preventDefault();
+
+      //Get FormData (bit overkill with this method but eh)
+      const form = new FormData(ef.target);
+      const formData = Object.fromEntries(form.entries());
+      const text = formData.commentInput;
+
+      //Remove text from input
+      inputthinglol.current.value = "";
+
+      //Unfocus
+      const tmp = document.createElement("input");
+      document.body.appendChild(tmp);
+      tmp.style.position = "fixed";
+      tmp.focus();
+      document.body.removeChild(tmp);
+
+      //Get User
+      const userA = JSON.parse(localStorage.getItem("u_u"));
+      const userB = JSON.parse(localStorage.getItem("u_ref"));
+
+      //Compile Payload
+      const thread = e.data.id;
+      const payload = {
+        userID: userB["@ref"].id,
+        postID: post.ref["@ref"].id,
+        text: text,
+        userInfo: {
+          server: userA.serverName,
+          name: userA.username,
+          pfpic: userA.pfpic,
+        },
+        thread: thread,
+      };
+      console.log(payload);
+
+      //Add to UI
+      let buf = [];
+      buf.push({ data: payload });
+      for (let i = 0; i < ourReplies.length; i++) {
+        const element = ourReplies[i];
+        buf.push(element);
+      }
+      setOurReplies(buf);
+
+      //API
+      const res = await axios.post("/api/create/reply-comment", payload);
+      console.log(res);
+    };
+
+    return (
+      <>
+        {/* The Actual Comment */}
+        <div className="commentSingle">
+          <img
+            src={e.data.userInfo.pfpic}
+            width={35}
+            height={35}
+            className="commentPic"
+          />
+
+          <div className="commentRight">
+            <p className="commentUsername">
+              <b>{e.data.userInfo.name}</b>{" "}
+              <span style={{ fontSize: "0.8em" }}>
+                {moment(e.data.toc).fromNow()}
+              </span>
+            </p>
+            <p className="commentContent">{e.data.text}</p>
+          </div>
+
+          <motion.div
+            style={{
+              marginLeft: "500px",
+              position: "absolute",
+              marginTop: "0px",
+              cursor: "pointer",
+            }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+          >
+            <Image
+              src="/reply_REA.png"
+              height={14}
+              width={14}
+              onClick={() => setIsEditing(!isEditing)}
+            />
+          </motion.div>
+        </div>
+
+        {/* Reply sh!t */}
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          {/* Our Comment Input */}
+          {isEditing === true && (
+            <div className="cInput">
+              <img
+                src={ourUser.pfpic}
+                className="commentPic"
+                height={30}
+                width={30}
+              />
+
+              <form onSubmit={replyFN}>
+                <input
+                  type="text"
+                  placeholder="whatcha reply m8?"
+                  className="cInputActual"
+                  name="commentInput"
+                  ref={inputthinglol}
+                ></input>
+              </form>
+
+              <br />
+            </div>
+          )}
+
+          {/* All of Da Replies */}
+          {ourReplies.map((e, idx) => (
+            <>
+              <div className="cInput" style={{ marginTop: "0px" }}>
+                <img
+                  src={e.data.userInfo.pfpic}
+                  className="commentPic"
+                  height={30}
+                  width={30}
+                />
+
+                <div className="commentRight">
+                  <p className="commentUsername" style={{ marginTop: "10px" }}>
+                    <b>{e.data.userInfo.name}</b>{" "}
+                    <span style={{ fontSize: "0.8em" }}>
+                      {moment(e.data.toc).fromNow()}
+                    </span>
+                  </p>
+                  <p className="commentContent">{e.data.text}</p>
+                </div>
+              </div>
+            </>
+          ))}
+        </div>
+
+        <style jsx>
+          {`
+            .commentPic {
+              border-radius: 50%;
+              border: 1px solid black;
+              width: 45px;
+              height: 45px;
+            }
+
+            .commentSingle {
+              margin-top: 20px;
+              display: flex;
+            }
+
+            .commentRight {
+              margin-top: 0px;
+              margin-left: 5px;
+            }
+
+            .commentUsername {
+              margin-top: 0px;
+              margin-bottom: 0px !important;
+              font-size: 0.95em;
+            }
+
+            .commentContent {
+              margin-top: 1px;
+              width: 540px;
+            }
+
+            .cInput {
+              margin-top: 0px;
+              margin-bottom: 0px;
+              margin-left: 30px;
+              display: flex;
+              align-items: center;
+            }
+
+            .cInputActual {
+              margin-top: 0px;
+              margin-left: 7px;
+              width: 230px;
+              border: none;
+              background-color: transparent;
+              font-size: 0.9em;
+              font-family: var(--mainfont);
+              background-color: transparent;
+              background-image: linear-gradient(gray, gray);
+              background-size: 10% 3px;
+              background-repeat: no-repeat;
+              background-position: center 110%;
+              transition: all 0.3s ease;
+              text-align: center;
+            }
+
+            .cInputActual:focus {
+              outline: none;
+              background-image: linear-gradient(black, black);
+              background-size: 100% 3px;
+            }
+          `}
+        </style>
+      </>
+    );
   };
 
   const ANIM_VARIANTS = {
@@ -321,42 +552,9 @@ export default function Post() {
             {/* All of the comments */}
             <div className="all-comments">
               {comments.map((e) => (
-                <div className="commentSingle">
-                  <img
-                    src={e.data.userInfo.pfpic}
-                    width={35}
-                    height={35}
-                    className="commentPic"
-                  />
-
-                  <div className="commentRight">
-                    <p className="commentUsername">
-                      <b>{e.data.userInfo.name}</b>{" "}
-                      <span style={{ fontSize: "0.8em" }}>
-                        {moment(e.data.toc).fromNow()}
-                      </span>
-                    </p>
-                    <p className="commentContent">{e.data.text}</p>
-                  </div>
-
-                  <motion.div
-                    style={{
-                      marginLeft: "300px",
-                      position: "absolute",
-                      marginTop: "0px",
-                      cursor: "pointer",
-                    }}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                  >
-                    <Image
-                      src="/reply_REA.png"
-                      height={14}
-                      width={14}
-                      onClick={() => setIsEditing(!isEditing)}
-                    />
-                  </motion.div>
-                </div>
+                <>
+                  <CommentThingy e={e} />
+                </>
               ))}
             </div>
           </div>
@@ -626,27 +824,6 @@ export default function Post() {
             -o-transition: all 0.4s ease-in-out;
             -webkit-transition: all 0.4s ease-in-out;
             transition: all 0.4s ease-in-out;
-          }
-
-          .commentSingle {
-            margin-top: 20px;
-            display: flex;
-          }
-
-          .commentRight {
-            margin-top: 0px;
-            margin-left: 5px;
-          }
-
-          .commentUsername {
-            margin-top: 0px;
-            margin-bottom: 0px !important;
-            font-size: 0.95em;
-          }
-
-          .commentContent {
-            margin-top: 1px;
-            width: 540px;
           }
         `}
       </style>
