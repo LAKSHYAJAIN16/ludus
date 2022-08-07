@@ -104,6 +104,7 @@ export default function Profile() {
     //According to our state, send request
     if (followState === 1) {
       setFollowState(2);
+      document.getElementById("follow").volume = 0.3;
       document.getElementById("follow").play();
 
       //Add it to followers array
@@ -121,6 +122,7 @@ export default function Profile() {
 
     if (followState === 2) {
       setFollowState(1);
+      document.getElementById("unfollow").volume = 0.4;
       document.getElementById("unfollow").play();
 
       //Remove from Followers array
@@ -349,7 +351,7 @@ export default function Profile() {
 
       <div className="sfx">
         <audio id="follow" src="/follow.mp3" />
-        <audio id="unfollow" src="/unfollow.wav" />
+        <audio id="unfollow" src="/unfollow.wav"/>
       </div>
 
       {modalState !== 0 && (
