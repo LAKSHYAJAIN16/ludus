@@ -9,9 +9,37 @@ export default function DirectMessages() {
   //All of the search Users
   const [searchUsers, setSearchUsers] = useState([]);
 
+  //All of our active conversations
+  const [activeConvos, setActiveConvos] = useState([]);
+
+  //Our User
+  const [ourUser, setOurUser] = useState();
+  const [ourRef, setOurRef] = useState();
+
   //UI vars
+  const [loadingConvos, setLoadingConvos] = useState(false);
   const [displayAddModal, setDisplayAddModal] = useState(false);
   const [displayLoadingModal, setDisplayLoadingModal] = useState(false);
+
+  useEffect(() => {
+    const run = async () => {
+      //Set Users
+      const temp_user = JSON.parse(localStorage.getItem("u_u"));
+      const temp_ref = JSON.parse(localStorage.getItem("u_ref"))["@ref"].id;
+      setOurUser(temp_user);
+      setOurRef(temp_ref);
+
+      //Get All of the active conversations
+      setLoadingConvos(true);
+      const res1 = await axios.get(
+        `/api/get/conversations/active-conversations?id=${temp_ref}`
+      );
+      const t_activeConvos = res1.data.data;
+      setActiveConvos(t_activeConvos);
+      setLoadingConvos(false);
+    };
+    run();
+  }, []);
 
   async function renderChange(text) {
     //Call our full text search API
@@ -28,15 +56,36 @@ export default function DirectMessages() {
     inputElement.focus();
   }
 
-  const startConversation = (e) => {
+  async function startConversation(e) {
     //Close AddModal Banner and open Loading Modal
     setDisplayAddModal(false);
     setDisplayLoadingModal(true);
 
-    //Create Conversation
-    
-    console.log(e);
-  };
+    //Instantiate Payload (set us as user1)
+    const payload = {
+      user1ID: ourRef,
+      user2ID: e[1]["@ref"].id,
+      user1Info: {
+        username: ourUser.username,
+        server: ourUser.serverName,
+        pfpic: ourUser.pfpic,
+        grade: ourUser.grade,
+        section: ourUser.section,
+      },
+      user2Info: {
+        username: e[0],
+        server: e[3],
+        pfpic: e[4],
+        grade: e[5],
+        section: e[6],
+      },
+    };
+
+    //API
+    const res = await axios.post("/api/create/conversation", payload);
+    console.log(res);
+    setDisplayLoadingModal(false);
+  }
 
   const AddModal = () => (
     <>
@@ -186,8 +235,8 @@ export default function DirectMessages() {
             z-index: 100;
             left: 45%;
             top: 40%;
-            width : 100px;
-            height : 100px;
+            width: 100px;
+            height: 100px;
             -webkit-transform: translate(-50%, -50%);
             transform: translate(-50%, -50%);
           }
@@ -202,6 +251,7 @@ export default function DirectMessages() {
         <Navbar />
         <div className="display side-content2 content">
           <div className="left">
+            {/* Top things */}
             <div className="top">
               <span className="heading">Direct Messages</span>
               <img src="/settings_MSGS.png" className="gear" />
@@ -211,13 +261,42 @@ export default function DirectMessages() {
                 onClick={() => setDisplayAddModal(true)}
               />
             </div>
+            <br />
+
+            {/* Active Conversations */}
+            <div className="activeConversations">
+              {loadingConvos ? (
+                <div className="loader activeLoader" />
+              ) : (
+                <>
+                  {activeConvos.map((e) => (
+                    <div className="flex convo">
+                      <img
+                        src={
+                          e.data.user1["@ref"].id === ourRef
+                            ? e.data.userInfo.u2.pfpic
+                            : e.data.userInfo.u1.pfpic
+                        }
+                        className="convoPfpic"
+                      />
+
+                      <p className="convoName">
+                        {e.data.user1["@ref"].id === ourRef
+                          ? e.data.userInfo.u2.username
+                          : e.data.userInfo.u1.username}
+                      </p>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
           </div>
         </div>
 
         {displayAddModal && <AddModal />}
-
         {displayLoadingModal && <LoadingModal />}
       </div>
+
       <style jsx>
         {`
           .side-content2 {
@@ -259,6 +338,41 @@ export default function DirectMessages() {
             height: 15px;
             margin-left: 10px;
             cursor: pointer;
+          }
+
+          .activeLoader {
+            width: 70px;
+            height: 70px;
+            margin-left: auto;
+            margin-right: auto;
+            margin-top: 150px;
+          }
+
+          .activeConversations {
+            height: 100%;
+            overflow: none;
+          }
+
+          .flex {
+            display: flex;
+            align-items: center;
+          }
+
+          .convo {
+            margin-top: 10px;
+            cursor : pointer;
+          }
+
+          .convoPfpic {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+          }
+
+          .convoName {
+            margin-left : 10px;
+            font-weight : 500;
+            font-family : var(--mainfont);
           }
         `}
       </style>
