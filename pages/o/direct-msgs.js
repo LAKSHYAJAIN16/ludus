@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Image from "next/image";
+import { motion } from "framer-motion";
 
 import sleep from "../../lib/sleep";
 import Navbar from "../../components/Navbar";
@@ -11,6 +12,12 @@ export default function DirectMessages() {
 
   //All of our active conversations
   const [activeConvos, setActiveConvos] = useState([]);
+
+  //Active Chat User
+  const [activeChatUser, setActiveChatUser] = useState({
+    otherGuy: { data: {} },
+    ourGuy: { data: {} },
+  });
 
   //Our User
   const [ourUser, setOurUser] = useState();
@@ -85,6 +92,23 @@ export default function DirectMessages() {
     const res = await axios.post("/api/create/conversation", payload);
     console.log(res);
     setDisplayLoadingModal(false);
+  }
+
+  async function startChat(e) {
+    //Do some setup for convinience
+    let us = {};
+    let otherGuy = {};
+    if (e.data.user1["@ref"].id === ourRef) {
+      us = { user: "u1", data: e.data.userInfo.u1 };
+      otherGuy = { user: "u2", data: e.data.userInfo.u2 };
+    } else {
+      us = { user: "u2", data: e.data.userInfo.u2 };
+      otherGuy = { user: "u1", data: e.data.userInfo.u1 };
+    }
+    e["ourGuy"] = us;
+    e["otherGuy"] = otherGuy;
+    console.log(e);
+    setActiveChatUser(e);
   }
 
   const AddModal = () => (
@@ -270,25 +294,98 @@ export default function DirectMessages() {
               ) : (
                 <>
                   {activeConvos.map((e) => (
-                    <div className="flex convo">
-                      <img
-                        src={
-                          e.data.user1["@ref"].id === ourRef
-                            ? e.data.userInfo.u2.pfpic
-                            : e.data.userInfo.u1.pfpic
-                        }
-                        className="convoPfpic"
-                      />
+                    <>
+                      <div className="flex convo" onClick={() => startChat(e)}>
+                        <a
+                          href={`/${
+                            e.data.user1["@ref"].id === ourRef
+                              ? e.data.userInfo.u2.server
+                              : e.data.userInfo.u1.server
+                          }/${
+                            e.data.user1["@ref"].id === ourRef
+                              ? e.data.userInfo.u2.username
+                              : e.data.userInfo.u1.username
+                          }`}
+                        >
+                          <img
+                            src={
+                              e.data.user1["@ref"].id === ourRef
+                                ? e.data.userInfo.u2.pfpic
+                                : e.data.userInfo.u1.pfpic
+                            }
+                            className="convoPfpic"
+                          />
+                        </a>
 
-                      <p className="convoName">
-                        {e.data.user1["@ref"].id === ourRef
-                          ? e.data.userInfo.u2.username
-                          : e.data.userInfo.u1.username}
-                      </p>
-                    </div>
+                        <p className="convoName">
+                          {e.data.user1["@ref"].id === ourRef
+                            ? e.data.userInfo.u2.username
+                            : e.data.userInfo.u1.username}
+
+                          <span className="convoDesc">
+                            {e.data.user1["@ref"].id === ourRef
+                              ? `${e.data.userInfo.u2.server}|${e.data.userInfo.u2.grade}|${e.data.userInfo.u2.section}`
+                              : `${e.data.userInfo.u1.server}|${e.data.userInfo.u1.grade}|${e.data.userInfo.u1.section}`}
+                          </span>
+                        </p>
+                      </div>
+                    </>
                   ))}
                 </>
               )}
+            </div>
+          </div>
+        </div>
+
+        <div className="display side-content3">
+          <div className="right">
+            {/* Top Stuff */}
+            <div className="flex">
+              <a
+                href={`/${activeChatUser.otherGuy.data.server}/${activeChatUser.otherGuy.data.username}`}
+              >
+                <img
+                  src={activeChatUser.otherGuy.data.pfpic}
+                  className="chatPfpic"
+                />
+              </a>
+              <div>
+                <p className="chatHeading">
+                  {activeChatUser.otherGuy.data.username}
+                </p>
+                <p className="chatDesc">
+                  {activeChatUser.otherGuy.data.server}|
+                  {activeChatUser.otherGuy.data.grade}|
+                  {activeChatUser.otherGuy.data.section}
+                </p>
+              </div>
+            </div>
+
+            {/* Text Box */}
+            <div className="activeChatTextBox">
+              {/* Actual Input */}
+              <input
+                className="acInput"
+                placeholder="what dy want to say m8?"
+              />
+
+              <motion.img
+                src="/gif_M.png"
+                width={27}
+                height={27}
+                style={{ cursor: "pointer" }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+              />
+              
+              <motion.img
+                src="/emoji_MARKER.png"
+                width={27}
+                height={27}
+                style={{ cursor: "pointer" }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+              />
             </div>
           </div>
         </div>
@@ -303,11 +400,16 @@ export default function DirectMessages() {
             margin-left: 260px;
           }
 
+          .side-content3 {
+            margin-left: 653px;
+          }
+
           .content {
             margin-top: 0px;
             position: absolute;
             width: 350px;
-            height: 95%;
+            min-height: 95%;
+
             border-left: 1px solid lightgrey;
             border-right: 1px solid lightgrey;
             padding-left: 20px;
@@ -349,7 +451,6 @@ export default function DirectMessages() {
           }
 
           .activeConversations {
-            height: 100%;
             overflow: none;
           }
 
@@ -360,7 +461,7 @@ export default function DirectMessages() {
 
           .convo {
             margin-top: 10px;
-            cursor : pointer;
+            cursor: pointer;
           }
 
           .convoPfpic {
@@ -370,9 +471,71 @@ export default function DirectMessages() {
           }
 
           .convoName {
-            margin-left : 10px;
-            font-weight : 500;
-            font-family : var(--mainfont);
+            margin-left: 10px;
+            font-weight: 500;
+            font-family: var(--mainfont);
+          }
+
+          .convoDesc {
+            margin-left: 30px;
+            color: grey;
+            font-weight: 200;
+            font-size: 0.9em;
+          }
+
+          .right {
+            padding-left: 10px;
+            padding-top: 10px;
+            padding-right: 10px;
+            position: fixed;
+          }
+
+          .chatPfpic {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+          }
+
+          .chatHeading {
+            margin-top: 0px;
+            margin-bottom: 0px;
+            padding-left: 5px;
+            font-size: 1.4em;
+            font-weight: 600;
+          }
+
+          .chatDesc {
+            margin-top: 0px;
+            font-size: 0.8em;
+            color: grey;
+            padding-left: 5px;
+          }
+
+          .activeChatTextBox {
+            display: flex;
+            position: fixed;
+            align-items: center;
+            z-index: 109;
+            margin-top: 480px;
+            margin-left: 25px;
+            padding-left: 10px;
+            background-color: white;
+            border: 1px solid black;
+            width: 620px;
+            height: 48px;
+          }
+
+          .acInput {
+            outline: none;
+            border: none;
+            font-family: var(--mainfont);
+            font-size: 0.9em;
+            width: 80%;
+          }
+
+          .acIcon {
+            cursor: pointer;
           }
         `}
       </style>
