@@ -2,7 +2,9 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Image from "next/image";
 import { motion } from "framer-motion";
+import { query, collection, where, onSnapshot } from "firebase/firestore";
 
+import db from "../../lib/firebase";
 import sleep from "../../lib/sleep";
 import Navbar from "../../components/Navbar";
 
@@ -28,6 +30,9 @@ export default function DirectMessages() {
   const [displayAddModal, setDisplayAddModal] = useState(false);
   const [displayLoadingModal, setDisplayLoadingModal] = useState(false);
 
+  //Dev :L
+  const [called, setCalled] = useState(false);
+
   useEffect(() => {
     const run = async () => {
       //Set Users
@@ -44,8 +49,40 @@ export default function DirectMessages() {
       const t_activeConvos = res1.data.data;
       setActiveConvos(t_activeConvos);
       setLoadingConvos(false);
+
+      //Add a new snapshot listener
+      const q = query(
+        collection(db, "msgs"),
+        where("reciever", "==", temp_ref)
+      );
+
+      //Simple Boolean to check for the first query since firebase always gives pre-existing data too lol
+      let initialQuery = true;
+      const snapyBoi = onSnapshot(q, (querySnapshot) => {
+        if (initialQuery === true) {
+          initialQuery = false;
+        } else {
+          //Get docChanges
+          const docChanges = querySnapshot.docChanges();
+          for (let index = 0; index < docChanges.length; index++) {
+            const docChange = docChanges[index];
+
+            if (docChange.type === "added") {
+              //Get the actual Doc
+              const docData = docChange.doc.data();
+              console.log({a : docChange.doc.id, b : docData});
+            }
+          }
+        }
+      });
+
+      //Dev :L
+      setCalled(true);
     };
-    run();
+
+    if (called === false) {
+      run();
+    }
   }, []);
 
   async function renderChange(text) {
@@ -99,16 +136,38 @@ export default function DirectMessages() {
     let us = {};
     let otherGuy = {};
     if (e.data.user1["@ref"].id === ourRef) {
-      us = { user: "u1", data: e.data.userInfo.u1 };
-      otherGuy = { user: "u2", data: e.data.userInfo.u2 };
+      us = { user: "u1", data: e.data.userInfo.u1, ref: e.data.user1 };
+      otherGuy = { user: "u2", data: e.data.userInfo.u2, ref: e.data.user2 };
     } else {
-      us = { user: "u2", data: e.data.userInfo.u2 };
-      otherGuy = { user: "u1", data: e.data.userInfo.u1 };
+      us = { user: "u2", data: e.data.userInfo.u2, ref: e.data.user2 };
+      otherGuy = { user: "u1", data: e.data.userInfo.u1, ref: e.data.user1 };
     }
     e["ourGuy"] = us;
     e["otherGuy"] = otherGuy;
-    console.log(e);
     setActiveChatUser(e);
+  }
+
+  async function msgText(key, txt) {
+    if (key === "Enter") {
+      //Create Payload
+      const payload = {
+        msg: {
+          type: "text",
+          text: txt,
+        },
+        sender: activeChatUser.ourGuy.ref["@ref"].id,
+        reciever: activeChatUser.otherGuy.ref["@ref"].id,
+      };
+      console.log(payload);
+
+      //API (fauna backend)
+      const res = await axios.post("/api/create/dms/fauna-msg", payload);
+      console.log(res);
+
+      //Firebase realtime backend
+      const res2 = await axios.post("/api/create/dms/fire-msg", payload);
+      console.log(res2);
+    }
   }
 
   const AddModal = () => (
@@ -363,10 +422,19 @@ export default function DirectMessages() {
 
             {/* Text Box */}
             <div className="activeChatTextBox">
+              <motion.img
+                src="/plus2_MSGS.png"
+                width={20}
+                height={20}
+                style={{ cursor: "pointer", marginRight: "7px" }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+              />
               {/* Actual Input */}
               <input
                 className="acInput"
                 placeholder="what dy want to say m8?"
+                onKeyDown={(e) => msgText(e.key, e.target.value)}
               />
 
               <motion.img
@@ -377,12 +445,21 @@ export default function DirectMessages() {
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
               />
-              
+
               <motion.img
                 src="/emoji_MARKER.png"
                 width={27}
                 height={27}
-                style={{ cursor: "pointer" }}
+                style={{ cursor: "pointer", marginLeft: "5px" }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+              />
+
+              <motion.img
+                src="/more_MSGS.png"
+                width={27}
+                height={27}
+                style={{ cursor: "pointer", marginLeft: "5px" }}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
               />
