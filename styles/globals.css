@@ -113,3 +113,19 @@ a {
     transform: rotate(360deg);
   }
 }
+
+.msg {
+  display: flex;
+  align-items: center;
+  border-radius: 25px;
+  margin-top: -8px;
+  margin-bottom : 0px;
+}
+
+.ourMessage {
+  background: rgb(29 155 240);
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+}

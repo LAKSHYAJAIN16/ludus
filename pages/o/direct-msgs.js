@@ -7,6 +7,8 @@ import { query, collection, where, onSnapshot } from "firebase/firestore";
 import db from "../../lib/firebase";
 import sleep from "../../lib/sleep";
 import Navbar from "../../components/Navbar";
+import Loader from "../../components/Loader";
+import LoadingModal from "../../components/LoadingModal";
 
 export default function DirectMessages() {
   //All of the search Users
@@ -21,6 +23,10 @@ export default function DirectMessages() {
     ourGuy: { data: {} },
   });
 
+  //Chat Message Info
+  const [chatMessageInfo, setChatMessageInfo] = useState({});
+  const [currentChatID, setCurrentChatID] = useState("");
+
   //Our User
   const [ourUser, setOurUser] = useState();
   const [ourRef, setOurRef] = useState();
@@ -29,6 +35,7 @@ export default function DirectMessages() {
   const [loadingConvos, setLoadingConvos] = useState(false);
   const [displayAddModal, setDisplayAddModal] = useState(false);
   const [displayLoadingModal, setDisplayLoadingModal] = useState(false);
+  const [displayMessageLoading, setDisplayMessageLoading] = useState(false);
 
   //Dev :L
   const [called, setCalled] = useState(false);
@@ -70,7 +77,7 @@ export default function DirectMessages() {
             if (docChange.type === "added") {
               //Get the actual Doc
               const docData = docChange.doc.data();
-              console.log({a : docChange.doc.id, b : docData});
+              console.log({ a: docChange.doc.id, b: docData });
             }
           }
         }
@@ -145,6 +152,9 @@ export default function DirectMessages() {
     e["ourGuy"] = us;
     e["otherGuy"] = otherGuy;
     setActiveChatUser(e);
+
+    //Now actually get the messages lol
+    getAllMessages(e.data.user1["@ref"].id, e.data.user2["@ref"].id);
   }
 
   async function msgText(key, txt) {
@@ -167,6 +177,43 @@ export default function DirectMessages() {
       //Firebase realtime backend
       const res2 = await axios.post("/api/create/dms/fire-msg", payload);
       console.log(res2);
+    }
+  }
+
+  async function getAllMessages(u1, u2) {
+    //Get all of the Keys, or Chats we've already buffered
+    const keys = Object.keys(chatMessageInfo);
+    console.log(keys);
+
+    //Generate both possible ID combinations (ikr)
+    const idGen1 = u1 + u2;
+    const idGen2 = u2 + u1;
+
+    //Check if the keys array contains either of them
+    let found = false;
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i];
+      if (key === idGen1 || key === idGen2) {
+        console.log("already queried LUL!");
+        found = true;
+        setCurrentChatID(key);
+        break;
+      }
+    }
+
+    if (found === false) {
+      //API
+      setDisplayMessageLoading(true);
+      const res = await axios.get(`/api/get/dms/msgs?u1=${u1}&u2=${u2}`);
+      const msgs = res.data.data;
+      console.log(msgs);
+
+      //Add it to our already found
+      let temp_chatMSGINFO = chatMessageInfo;
+      temp_chatMSGINFO[idGen1] = msgs;
+      setCurrentChatID(idGen1);
+      setChatMessageInfo(temp_chatMSGINFO);
+      setDisplayMessageLoading(false);
     }
   }
 
@@ -292,36 +339,6 @@ export default function DirectMessages() {
             position: absolute;
             margin-left: 400px;
             font-size: 0.8em;
-          }
-        `}
-      </style>
-    </>
-  );
-
-  const LoadingModal = () => (
-    <>
-      <div className="blocker" />
-      <div className="main loader"></div>
-
-      <style jsx>
-        {`
-          .blocker {
-            position: fixed;
-            min-width: 100%;
-            min-height: 100%;
-            background-color: rgba(0, 0, 0, 0.3);
-            z-index: 0.1;
-          }
-
-          .main {
-            position: fixed;
-            z-index: 100;
-            left: 45%;
-            top: 40%;
-            width: 100px;
-            height: 100px;
-            -webkit-transform: translate(-50%, -50%);
-            transform: translate(-50%, -50%);
           }
         `}
       </style>
@@ -464,6 +481,31 @@ export default function DirectMessages() {
                 whileTap={{ scale: 0.9 }}
               />
             </div>
+
+            {displayMessageLoading ? (
+              <Loader size={3} />
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                {/* Another failsafe :L */}
+                {currentChatID !== "" && (
+                  <>
+                    {chatMessageInfo[currentChatID].map((e) => (
+                      <div className="msg">
+                        {e.data.sender === ourRef ? (
+                          <div className="ourMessage">
+                            <p>{e.data.msg.text}</p>
+                          </div>
+                        ) : (
+                          <div className="otherMessage">
+                            <p>not our guy</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
