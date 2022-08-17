@@ -485,22 +485,29 @@ export default function DirectMessages() {
             {displayMessageLoading ? (
               <Loader size={3} />
             ) : (
-              <div style={{ display: "flex", flexDirection: "column" }}>
+              <div
+                style={{
+                  overflow: "auto",
+                  display:"flex",
+                  flexDirection:"column",
+                  flexGrow:"none"
+                }}
+              >
                 {/* Another failsafe :L */}
                 {currentChatID !== "" && (
                   <>
-                    {chatMessageInfo[currentChatID].map((e) => (
-                      <div className="msg">
+                    {chatMessageInfo[currentChatID].map((e, idx) => (
+                      <>
                         {e.data.sender === ourRef ? (
                           <div className="ourMessage">
                             <p>{e.data.msg.text}</p>
                           </div>
                         ) : (
-                          <div className="otherMessage">
-                            <p>not our guy</p>
+                          <div className="theirMessage">
+                            <p>{e.data.msg.text}</p>
                           </div>
                         )}
-                      </div>
+                      </>
                     ))}
                   </>
                 )}
