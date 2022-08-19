@@ -168,15 +168,28 @@ export default function DirectMessages() {
         sender: activeChatUser.ourGuy.ref["@ref"].id,
         reciever: activeChatUser.otherGuy.ref["@ref"].id,
       };
-      console.log(payload);
 
-      //API (fauna backend)
-      const res = await axios.post("/api/create/dms/fauna-msg", payload);
-      console.log(res);
+      //Add to the chatMessageInfo
+      setDisplayMessageLoading(true);
+      let curChat = chatMessageInfo;
+      curChat[currentChatID].push({ data: payload });
+      setChatMessageInfo(curChat);
+      await sleep(0.001);
+      setDisplayMessageLoading(false);
 
-      //Firebase realtime backend
-      const res2 = await axios.post("/api/create/dms/fire-msg", payload);
-      console.log(res2);
+      //Scroll into view (ikr javascript)
+      await sleep(0.001);
+      document
+        .getElementById(`clown-${curChat[currentChatID].length - 1}`)
+        .scrollIntoView({ behavior: "auto" });
+
+      // //Firebase realtime backend
+      // const res2 = await axios.post("/api/create/dms/fire-msg", payload);
+      // console.log(res2);
+
+      // //API (fauna backend)
+      // const res = await axios.post("/api/create/dms/fauna-msg", payload);
+      // console.log(res);
     }
   }
 
@@ -482,31 +495,26 @@ export default function DirectMessages() {
               />
             </div>
 
-            {displayMessageLoading ? (
+            {displayMessageLoading === true ? (
               <Loader size={3} />
             ) : (
-              <div
-                style={{
-                  overflow: "auto",
-                  display:"flex",
-                  flexDirection:"column",
-                  flexGrow:"none"
-                }}
-              >
+              <div className="messages">
                 {/* Another failsafe :L */}
                 {currentChatID !== "" && (
                   <>
                     {chatMessageInfo[currentChatID].map((e, idx) => (
                       <>
-                        {e.data.sender === ourRef ? (
-                          <div className="ourMessage">
-                            <p>{e.data.msg.text}</p>
-                          </div>
-                        ) : (
-                          <div className="theirMessage">
-                            <p>{e.data.msg.text}</p>
-                          </div>
-                        )}
+                        <div
+                          className={`msg ${
+                            e.data.sender === ourRef ? "rightMSG" : "leftMSG"
+                          }`}
+                          id={`clown-${idx}`}
+                        >
+                          <p>{e.data.msg.text}</p>
+                        </div>
+                        <br />
+                        <br />
+                        <br />
                       </>
                     ))}
                   </>

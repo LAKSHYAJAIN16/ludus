@@ -114,33 +114,31 @@ a {
   }
 }
 
-.ourMessage {
+.msg {
   display: flex;
-  border-radius: 0px;
-  margin-top: 0px;
-  margin-bottom : 0px;
-  max-width: 300px;
-  background: rgb(29 155 240);
+  align-items: center;
+  background-color: grey;
+  min-height: 20px;
+  width: fit-content;
   border-radius: 25px;
+  max-width: 300px;
   padding-left: 10px;
   padding-right: 10px;
-  margin-left: 500px;
-  text-align: right;
-  float: right;
-  zoom: 1;
+  padding-top: 2px;
+  padding-bottom: 2px;
 }
 
-.theirMessage {
-  display: flex;
-  border-radius: 0px;
-  margin-top: 0px;
-  margin-bottom : 0px;
-  max-width: 300px;
-  background: rgb(150, 150, 150);
-  border-radius: 25px;
-  padding-left: 10px;
-  padding-right: 10px;
-  text-align: left;
-  float: left;
-  zoom: 1;
+.messages {
+  overflow: auto;
+  width: 700px;
+  height: 470px;
+}
+
+.rightMSG {
+  float: right;
+  margin-right: 20px;
+  background-color: rgb(29, 155, 240);
+}
+
+.leftMSG {
 }
