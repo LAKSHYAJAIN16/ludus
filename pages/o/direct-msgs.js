@@ -25,6 +25,7 @@ export default function DirectMessages() {
 
   //Chat Message Info
   const [chatMessageInfo, setChatMessageInfo] = useState({});
+  const [fireMessageIDS, setFireMessageIDS] = useState([]);
   const [currentChatID, setCurrentChatID] = useState("");
 
   //Our User
@@ -65,7 +66,7 @@ export default function DirectMessages() {
 
       //Simple Boolean to check for the first query since firebase always gives pre-existing data too lol
       let initialQuery = true;
-      const snapyBoi = onSnapshot(q, (querySnapshot) => {
+      const snapyBoi = onSnapshot(q, async (querySnapshot) => {
         if (initialQuery === true) {
           initialQuery = false;
         } else {
@@ -78,6 +79,43 @@ export default function DirectMessages() {
               //Get the actual Doc
               const docData = docChange.doc.data();
               console.log({ a: docChange.doc.id, b: docData });
+
+              //First, check if there is already a FireDoc with the same id (ikr firebase)
+              const found = false;
+              for (let i = 0; i < fireMessageIDS.length; i++) {
+                const id = fireMessageIDS[i];
+                if (id === docChange.doc.id) {
+                  found = true;
+                }
+              }
+
+              if (found === true) {
+                console.log("Already have that msg LUL");
+              } else if(found === false){
+                //Add to Fire Messages
+                let fire = fireMessageIDS;
+                fire.push(docChange.doc.id);
+                setFireMessageIDS(fire);
+                
+                //Add to the chatMessageInfo (JAVASCRIPT!)
+                setDisplayMessageLoading(true);
+                let curChat = chatMessageInfo;
+                console.log(curChat);
+                // const curCurChat = chatMessageInfo[currentChatID];
+                // if(curCurChat === undefined){
+                //   curChat[currentChatID] = [];
+                // }
+                // curChat[currentChatID].push({ data: docData });
+                // setChatMessageInfo(curChat);
+                // await sleep(0.001);
+                // setDisplayMessageLoading(false);
+
+                // //Scroll into view (ikr javascript)
+                // await sleep(0.001);
+                // document
+                //   .getElementById(`clown-${curChat[currentChatID].length - 1}`)
+                //   .scrollIntoView({ behavior: "auto" });
+              }
             }
           }
         }
@@ -157,7 +195,7 @@ export default function DirectMessages() {
     getAllMessages(e.data.user1["@ref"].id, e.data.user2["@ref"].id);
   }
 
-  async function msgText(key, txt) {
+  async function msgText(key, txt, element) {
     if (key === "Enter") {
       //Create Payload
       const payload = {
@@ -169,7 +207,10 @@ export default function DirectMessages() {
         reciever: activeChatUser.otherGuy.ref["@ref"].id,
       };
 
-      //Add to the chatMessageInfo
+      //Reset TXT Input value
+      element.value = "";
+
+      //Add to the chatMessageInfo (JAVASCRIPT!)
       setDisplayMessageLoading(true);
       let curChat = chatMessageInfo;
       curChat[currentChatID].push({ data: payload });
@@ -183,13 +224,13 @@ export default function DirectMessages() {
         .getElementById(`clown-${curChat[currentChatID].length - 1}`)
         .scrollIntoView({ behavior: "auto" });
 
-      // //Firebase realtime backend
-      // const res2 = await axios.post("/api/create/dms/fire-msg", payload);
-      // console.log(res2);
+      //Firebase realtime backend
+      const res2 = await axios.post("/api/create/dms/fire-msg", payload);
+      console.log(res2);
 
-      // //API (fauna backend)
-      // const res = await axios.post("/api/create/dms/fauna-msg", payload);
-      // console.log(res);
+      //API (fauna backend)
+      const res = await axios.post("/api/create/dms/fauna-msg", payload);
+      console.log(res);
     }
   }
 
@@ -464,7 +505,7 @@ export default function DirectMessages() {
               <input
                 className="acInput"
                 placeholder="what dy want to say m8?"
-                onKeyDown={(e) => msgText(e.key, e.target.value)}
+                onKeyDown={(e) => msgText(e.key, e.target.value, e.target)}
               />
 
               <motion.img
@@ -495,6 +536,7 @@ export default function DirectMessages() {
               />
             </div>
 
+            {/* Messages */}
             {displayMessageLoading === true ? (
               <Loader size={3} />
             ) : (
