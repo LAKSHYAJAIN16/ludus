@@ -11,6 +11,7 @@ export default async function handler(req, res) {
     msg: {
       ...req.body.msg,
     },
+    channel : req.query.channel,
     sender: req.body.sender,
     reciever: req.body.reciever,
   };

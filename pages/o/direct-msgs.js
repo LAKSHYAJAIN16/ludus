@@ -2,7 +2,13 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { query, collection, where, onSnapshot } from "firebase/firestore";
+import {
+  query,
+  collection,
+  where,
+  onSnapshot,
+  limitToLast,
+} from "firebase/firestore";
 
 import db from "../../lib/firebase";
 import sleep from "../../lib/sleep";
@@ -72,52 +78,7 @@ export default function DirectMessages() {
         } else {
           //Get docChanges
           const docChanges = querySnapshot.docChanges();
-          for (let index = 0; index < docChanges.length; index++) {
-            const docChange = docChanges[index];
-
-            if (docChange.type === "added") {
-              //Get the actual Doc
-              const docData = docChange.doc.data();
-              console.log({ a: docChange.doc.id, b: docData });
-
-              //First, check if there is already a FireDoc with the same id (ikr firebase)
-              const found = false;
-              for (let i = 0; i < fireMessageIDS.length; i++) {
-                const id = fireMessageIDS[i];
-                if (id === docChange.doc.id) {
-                  found = true;
-                }
-              }
-
-              if (found === true) {
-                console.log("Already have that msg LUL");
-              } else if(found === false){
-                //Add to Fire Messages
-                let fire = fireMessageIDS;
-                fire.push(docChange.doc.id);
-                setFireMessageIDS(fire);
-                
-                //Add to the chatMessageInfo (JAVASCRIPT!)
-                setDisplayMessageLoading(true);
-                let curChat = chatMessageInfo;
-                console.log(curChat);
-                // const curCurChat = chatMessageInfo[currentChatID];
-                // if(curCurChat === undefined){
-                //   curChat[currentChatID] = [];
-                // }
-                // curChat[currentChatID].push({ data: docData });
-                // setChatMessageInfo(curChat);
-                // await sleep(0.001);
-                // setDisplayMessageLoading(false);
-
-                // //Scroll into view (ikr javascript)
-                // await sleep(0.001);
-                // document
-                //   .getElementById(`clown-${curChat[currentChatID].length - 1}`)
-                //   .scrollIntoView({ behavior: "auto" });
-              }
-            }
-          }
+          snapListener(docChanges, temp_ref);
         }
       });
 
@@ -129,6 +90,62 @@ export default function DirectMessages() {
       run();
     }
   }, []);
+
+  async function snapListener(docChanges, uID) {
+    for (let index = 0; index < docChanges.length; index++) {
+      const docChange = docChanges[index];
+
+      if (docChange.type === "added") {
+        //Get the actual Doc
+        const docData = docChange.doc.data();
+
+        //First, check if there is already a FireDoc with the same id (ikr firebase)
+        let found = false;
+        for (let i = 0; i < fireMessageIDS.length; i++) {
+          const id = fireMessageIDS[i];
+          if (id === docChange.doc.id) {
+            found = true;
+          }
+        }
+
+        if (found === true) {
+          console.log("Already have that msg LUL");
+        } else if (found === false) {
+          //Add to Fire Messages
+          let fire = fireMessageIDS;
+          fire.push(docChange.doc.id);
+          setFireMessageIDS(fire);
+
+          //Add to the chatMessageInfo (JAVASCRIPT!)
+          let curChat = chatMessageInfo;
+          curChat[docData.channel].push({ data: docData });
+          setChatMessageInfo(curChat);
+
+          //Get our other users and see if they match
+          let quer1 = docData.sender == uID ? docData.reciever : docData.sender;
+          let quer2 = sessionStorage.getItem("act_chat");
+
+          if (quer2 === quer1) {
+            console.log("WORKS BOI!");
+
+            //The Weird stuff
+            setDisplayMessageLoading(true);
+            await sleep(0.001);
+            setDisplayMessageLoading(false);
+
+            //Scroll into view (ikr javascript)
+            await sleep(0.001);
+            document
+              .getElementById(`clown-${curChat[docData.channel].length - 1}`)
+              .scrollIntoView({ behavior: "auto" });
+          } else {
+            //Add that unread messages thing
+            console.log("it aint gonna work");
+          }
+        }
+      }
+    }
+  }
 
   async function renderChange(text) {
     //Call our full text search API
@@ -191,17 +208,23 @@ export default function DirectMessages() {
     e["otherGuy"] = otherGuy;
     setActiveChatUser(e);
 
+    //Save Reference to session storage
+    sessionStorage.setItem("act_chat", otherGuy.ref["@ref"].id);
+
     //Now actually get the messages lol
     getAllMessages(e.data.user1["@ref"].id, e.data.user2["@ref"].id);
   }
 
   async function msgText(key, txt, element) {
     if (key === "Enter") {
+      //Filter for Emoticons
+      const actText = lookForEmoticons(txt);
+
       //Create Payload
       const payload = {
         msg: {
           type: "text",
-          text: txt,
+          text: actText,
         },
         sender: activeChatUser.ourGuy.ref["@ref"].id,
         reciever: activeChatUser.otherGuy.ref["@ref"].id,
@@ -225,12 +248,20 @@ export default function DirectMessages() {
         .scrollIntoView({ behavior: "auto" });
 
       //Firebase realtime backend
-      const res2 = await axios.post("/api/create/dms/fire-msg", payload);
+      const res2 = await axios.post(
+        `/api/create/dms/fire-msg?channel=${currentChatID}`,
+        payload
+      );
       console.log(res2);
 
-      //API (fauna backend)
-      const res = await axios.post("/api/create/dms/fauna-msg", payload);
-      console.log(res);
+      // //API (fauna backend)
+      // const res = await axios.post("/api/create/dms/fauna-msg", payload);
+      // console.log(res);
+    } else {
+      const n = lookForEmoticons(txt);
+      if (n != txt) {
+        element.value = n;
+      }
     }
   }
 
@@ -269,6 +300,38 @@ export default function DirectMessages() {
       setChatMessageInfo(temp_chatMSGINFO);
       setDisplayMessageLoading(false);
     }
+  }
+
+  function lookForEmoticons(txt) {
+    let n = txt;
+
+    //All Combinations
+    const combinations = [
+      { t: ":)", e: "😊" },
+      { t: ";)", e: "😉" },
+      { t: "=)", e: "😀" },
+      { t: ":-)", e: "😊" },
+      { t: ":]", e: "😊" },
+      { t: ":-]", e: "😊" },
+      { t: ":^)", e: "😁" },
+      {t : '=3', e : '😍'},
+      {t : 'B^D', e : "😄"},
+      {t : "8D", e : "😄"},
+      {t : "x-D", e : '😆'},
+      {t : "X-D", e : "😆"},
+      {t : "xd", e : '😆'},
+      {t : "xD", e : '😆'},
+      {t : "Xd", e : "😆"},
+      {t : "XD", e : "😆"},
+      {t : ":x", e : "😘"},
+    ];
+
+    for (let i = 0; i < combinations.length; i++) {
+      const e = combinations[i];
+      n = n.replace(e.t, e.e);
+    }
+
+    return n;
   }
 
   const AddModal = () => (
@@ -541,6 +604,8 @@ export default function DirectMessages() {
               <Loader size={3} />
             ) : (
               <div className="messages">
+                <br />
+                <br />
                 {/* Another failsafe :L */}
                 {currentChatID !== "" && (
                   <>
