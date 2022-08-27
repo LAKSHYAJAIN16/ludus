@@ -254,9 +254,9 @@ export default function DirectMessages() {
       );
       console.log(res2);
 
-      // //API (fauna backend)
-      // const res = await axios.post("/api/create/dms/fauna-msg", payload);
-      // console.log(res);
+      //API (fauna backend)
+      const res = await axios.post("/api/create/dms/fauna-msg", payload);
+      console.log(res);
     } else {
       const n = lookForEmoticons(txt);
       if (n != txt) {
