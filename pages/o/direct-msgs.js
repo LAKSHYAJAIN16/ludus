@@ -34,6 +34,9 @@ export default function DirectMessages() {
   const [fireMessageIDS, setFireMessageIDS] = useState([]);
   const [currentChatID, setCurrentChatID] = useState("");
 
+  //Gif Menu Variables
+  const [gifMenuItems, setGifMenuItems] = useState([]);
+
   //Our User
   const [ourUser, setOurUser] = useState();
   const [ourRef, setOurRef] = useState();
@@ -43,6 +46,7 @@ export default function DirectMessages() {
   const [displayAddModal, setDisplayAddModal] = useState(false);
   const [displayLoadingModal, setDisplayLoadingModal] = useState(false);
   const [displayMessageLoading, setDisplayMessageLoading] = useState(false);
+  const [renderGifMenu, setRenderGifMenu] = useState(false);
 
   //Dev :L
   const [called, setCalled] = useState(false);
@@ -81,6 +85,9 @@ export default function DirectMessages() {
           snapListener(docChanges, temp_ref);
         }
       });
+
+      //Get Top Gifs
+      getTopGifs();
 
       //Dev :L
       setCalled(true);
@@ -134,7 +141,7 @@ export default function DirectMessages() {
             setDisplayMessageLoading(false);
 
             //Scroll into view (ikr javascript)
-            await sleep(0.001);
+            await sleep(0.005);
             document
               .getElementById(`clown-${curChat[docData.channel].length - 1}`)
               .scrollIntoView({ behavior: "auto" });
@@ -302,6 +309,20 @@ export default function DirectMessages() {
     }
   }
 
+  async function getTopGifs() {
+    const ENDPOINT =
+      "https://g.tenor.com/v1/trending?key=QK8FF5TD7JOM&limit=9";
+    const res = await axios.get(ENDPOINT);
+    const objects = res.data.results;
+    const returnA = [];
+    for (let i = 0; i < objects.length; i++) {
+      const e = objects[i].media[0];
+      returnA.push(e.gif);
+    }
+
+    setGifMenuItems(returnA);
+  }
+
   function lookForEmoticons(txt) {
     let n = txt;
 
@@ -314,16 +335,16 @@ export default function DirectMessages() {
       { t: ":]", e: "😊" },
       { t: ":-]", e: "😊" },
       { t: ":^)", e: "😁" },
-      {t : '=3', e : '😍'},
-      {t : 'B^D', e : "😄"},
-      {t : "8D", e : "😄"},
-      {t : "x-D", e : '😆'},
-      {t : "X-D", e : "😆"},
-      {t : "xd", e : '😆'},
-      {t : "xD", e : '😆'},
-      {t : "Xd", e : "😆"},
-      {t : "XD", e : "😆"},
-      {t : ":x", e : "😘"},
+      { t: "=3", e: "😍" },
+      { t: "B^D", e: "😄" },
+      { t: "8D", e: "😄" },
+      { t: "x-D", e: "😆" },
+      { t: "X-D", e: "😆" },
+      { t: "xd", e: "😆" },
+      { t: "xD", e: "😆" },
+      { t: "Xd", e: "😆" },
+      { t: "XD", e: "😆" },
+      { t: ":x", e: "😘" },
     ];
 
     for (let i = 0; i < combinations.length; i++) {
@@ -554,8 +575,46 @@ export default function DirectMessages() {
               </div>
             </div>
 
+            {/* Gif Menu */}
+            {renderGifMenu && (
+              <motion.div
+                className="gifMenu"
+                animate={{ opacity: 1 }}
+                transition={{
+                  opacity: {
+                    type: "spring",
+                    duration: 0.05,
+                    mass: 1,
+                    stiffness: 100,
+                    damping: 10,
+                  },
+                }}
+              >
+                <input className="gifInput" placeholder="Search for a Gif..." />
+                <br />
+                <br />
+                {/* The GIFS */}
+                <div className="gifs">
+                  {gifMenuItems.map((e, idx) => (
+                    <motion.div
+                      className="gif"
+                      whileHover={{ scale: 1.15 }}
+                      whileTap={{ scale: 0.9 }}
+                    >
+                      <img
+                        src={e.url}
+                        width={e.dims[0] * 0.27}
+                        height={e.dims[1] * 0.27}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
             {/* Text Box */}
             <div className="activeChatTextBox">
+              {/* Plus Icon */}
               <motion.img
                 src="/plus2_MSGS.png"
                 width={20}
@@ -564,6 +623,7 @@ export default function DirectMessages() {
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
               />
+
               {/* Actual Input */}
               <input
                 className="acInput"
@@ -578,6 +638,7 @@ export default function DirectMessages() {
                 style={{ cursor: "pointer" }}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
+                onClick={() => setRenderGifMenu(!renderGifMenu)}
               />
 
               <motion.img
