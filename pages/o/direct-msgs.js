@@ -36,6 +36,8 @@ export default function DirectMessages() {
 
   //Gif Menu Variables
   const [gifMenuItems, setGifMenuItems] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [gifSuggestions, setGifSuggestions] = useState([]);
 
   //Our User
   const [ourUser, setOurUser] = useState();
@@ -87,7 +89,7 @@ export default function DirectMessages() {
       });
 
       //Get Top Gifs
-      getTopGifs();
+      getTopGifStuff();
 
       //Dev :L
       setCalled(true);
@@ -309,9 +311,9 @@ export default function DirectMessages() {
     }
   }
 
-  async function getTopGifs() {
-    const ENDPOINT =
-      "https://g.tenor.com/v1/trending?key=QK8FF5TD7JOM&limit=9";
+  async function getTopGifStuff() {
+    //Top GIFS
+    const ENDPOINT = "https://g.tenor.com/v1/trending?key=QK8FF5TD7JOM&limit=9";
     const res = await axios.get(ENDPOINT);
     const objects = res.data.results;
     const returnA = [];
@@ -319,8 +321,14 @@ export default function DirectMessages() {
       const e = objects[i].media[0];
       returnA.push(e.gif);
     }
-
     setGifMenuItems(returnA);
+
+    //Top SearchTerms
+    const ENDPOINT2 =
+      "https://g.tenor.com/v1/trending_terms?key=QK8FF5TD7JOM&limit=4";
+    const res2 = await axios.get(ENDPOINT2);
+    const returnB = res2.data.results;
+    setGifSuggestions(returnB);
   }
 
   function lookForEmoticons(txt) {
@@ -590,24 +598,53 @@ export default function DirectMessages() {
                   },
                 }}
               >
-                <input className="gifInput" placeholder="Search for a Gif..." />
-                <br />
-                <br />
+                {/* Text Input */}
+                <input
+                  className="gifInput"
+                  placeholder="Search for a Gif..."
+                  onFocus={(e) => setShowSuggestions(true)}
+                />
+
+                {/* Suggestions */}
+                {showSuggestions === true ? (
+                  <>
+                    <div className="suggestions">
+                      {gifSuggestions.map((e, idx) => (
+                        <>
+                          <div className="suggestion">hi!</div>
+                        </>
+                      ))}
+                    </div>
+                    <br />
+                    <br />
+                    <br />
+                  </>
+                ) : (
+                  <>
+                    <br />
+                    <br />
+                  </>
+                )}
+
                 {/* The GIFS */}
-                <div className="gifs">
-                  {gifMenuItems.map((e, idx) => (
-                    <motion.div
-                      className="gif"
-                      whileHover={{ scale: 1.15 }}
-                      whileTap={{ scale: 0.9 }}
-                    >
-                      <img
-                        src={e.url}
-                        width={e.dims[0] * 0.27}
-                        height={e.dims[1] * 0.27}
-                      />
-                    </motion.div>
-                  ))}
+                <div className="gif-wrapper">
+                  <div className="gifs">
+                    {gifMenuItems.map((e, idx) => (
+                      <motion.div
+                        className="gif"
+                        whileHover={{ scale: 1.15 }}
+                        whileTap={{ scale: 0.9 }}
+                      >
+                        <img
+                          src={e.url}
+                          // width={e.dims[0] * 0.2}
+                          // height={e.dims[1] * 0.2}
+                          width={100}
+                          height={90}
+                        />
+                      </motion.div>
+                    ))}
+                  </div>
                 </div>
               </motion.div>
             )}
