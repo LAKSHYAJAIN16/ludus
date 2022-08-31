@@ -12,6 +12,7 @@ import {
 
 import db from "../../lib/firebase";
 import sleep from "../../lib/sleep";
+import isInViewport from "../../lib/isInViewport";
 import Navbar from "../../components/Navbar";
 import Loader from "../../components/Loader";
 import LoadingModal from "../../components/LoadingModal";
@@ -38,6 +39,7 @@ export default function DirectMessages() {
   const [gifMenuItems, setGifMenuItems] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [gifSuggestions, setGifSuggestions] = useState([]);
+  const [loadingGifGrid, setLoadingGifGrid] = useState(false);
 
   //Our User
   const [ourUser, setOurUser] = useState();
@@ -49,6 +51,7 @@ export default function DirectMessages() {
   const [displayLoadingModal, setDisplayLoadingModal] = useState(false);
   const [displayMessageLoading, setDisplayMessageLoading] = useState(false);
   const [renderGifMenu, setRenderGifMenu] = useState(false);
+  const [renderEmojiMenu, setRenderEmojiMenu] = useState(false);
 
   //Dev :L
   const [called, setCalled] = useState(false);
@@ -274,6 +277,46 @@ export default function DirectMessages() {
     }
   }
 
+  async function msgGif(gif) {
+    //Create Payload
+    const payload = {
+      msg: {
+        type: "gif",
+        gif: gif,
+      },
+      sender: activeChatUser.ourGuy.ref["@ref"].id,
+      reciever: activeChatUser.otherGuy.ref["@ref"].id,
+    };
+
+    //Add to the chatMessageInfo (JAVASCRIPT!)
+    setDisplayMessageLoading(true);
+    let curChat = chatMessageInfo;
+    curChat[currentChatID].push({ data: payload });
+    setChatMessageInfo(curChat);
+    await sleep(0.001);
+    setDisplayMessageLoading(false);
+
+    //Scroll into view (ikr javascript)
+    await sleep(0.001);
+    document
+      .getElementById(`clown-${curChat[currentChatID].length - 1}`)
+      .scrollIntoView({ behavior: "auto" });
+
+    //Hide the Gif Panel
+    setRenderGifMenu(false);
+
+    //Firebase realtime backend
+    const res2 = await axios.post(
+      `/api/create/dms/fire-msg?channel=${currentChatID}`,
+      payload
+    );
+    console.log(res2);
+
+    //API (fauna backend)
+    const res = await axios.post("/api/create/dms/fauna-msg", payload);
+    console.log(res);
+  }
+
   async function getAllMessages(u1, u2) {
     //Get all of the Keys, or Chats we've already buffered
     const keys = Object.keys(chatMessageInfo);
@@ -331,6 +374,47 @@ export default function DirectMessages() {
     setGifSuggestions(returnB);
   }
 
+  async function gifOperate(value) {
+    //Top SearchTerms
+    const ENDPOINT2 = `https://g.tenor.com/v1/autocomplete?q=${value}&key=QK8FF5TD7JOM&limit=4`;
+    const res2 = await axios.get(ENDPOINT2);
+    const returnB = res2.data.results;
+    setGifSuggestions(returnB);
+
+    //Actual Gifs
+    setLoadingGifGrid(true);
+    const ENDPOINT = `https://g.tenor.com/v1/search?q=${value}&key=QK8FF5TD7JOM&limit=9`;
+    const res = await axios.get(ENDPOINT);
+    const objects = res.data.results;
+    const returnA = [];
+    for (let i = 0; i < objects.length; i++) {
+      const e = objects[i].media[0];
+      returnA.push(e.gif);
+    }
+    console.log(returnA);
+    setGifMenuItems(returnA);
+    setLoadingGifGrid(false);
+  }
+
+  async function assignSuggestions(val) {
+    const gifInput = document.getElementById("gifInputThingy");
+    gifInput.value = val;
+
+    //Actual Gifs
+    setLoadingGifGrid(true);
+    const ENDPOINT = `https://g.tenor.com/v1/search?q=${val}&key=QK8FF5TD7JOM&limit=9`;
+    const res = await axios.get(ENDPOINT);
+    const objects = res.data.results;
+    const returnA = [];
+    for (let i = 0; i < objects.length; i++) {
+      const e = objects[i].media[0];
+      returnA.push(e.gif);
+    }
+    console.log(returnA);
+    setGifMenuItems(returnA);
+    setLoadingGifGrid(false);
+  }
+
   function lookForEmoticons(txt) {
     let n = txt;
 
@@ -361,6 +445,15 @@ export default function DirectMessages() {
     }
 
     return n;
+  }
+
+  function scrollCallback() {
+    const curChat = chatMessageInfo;
+    if (curChat === {}) return;
+
+    const len = curChat[currentChatID].length - 1;
+    const element = document.getElementById(`clown-${len}`);
+    console.log(isInViewport(element));
   }
 
   const AddModal = () => (
@@ -491,6 +584,15 @@ export default function DirectMessages() {
     </>
   );
 
+  const Emoji = ({ id }) => (
+    <Image
+      src={`/x/${id}.png`}
+      width={35}
+      height={35}
+      style={{ cursor: "pointer", marginLeft: "5px" }}
+    />
+  );
+
   return (
     <>
       <div>
@@ -602,6 +704,8 @@ export default function DirectMessages() {
                 <input
                   className="gifInput"
                   placeholder="Search for a Gif..."
+                  id="gifInputThingy"
+                  onKeyDown={(e) => gifOperate(e.target.value)}
                   onFocus={(e) => setShowSuggestions(true)}
                 />
 
@@ -611,7 +715,14 @@ export default function DirectMessages() {
                     <div className="suggestions">
                       {gifSuggestions.map((e, idx) => (
                         <>
-                          <div className="suggestion">hi!</div>
+                          <motion.div
+                            className="suggestion"
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 1.1 }}
+                            onClick={() => assignSuggestions(e)}
+                          >
+                            <span>{e}</span>
+                          </motion.div>
                         </>
                       ))}
                     </div>
@@ -627,23 +738,139 @@ export default function DirectMessages() {
                 )}
 
                 {/* The GIFS */}
-                <div className="gif-wrapper">
-                  <div className="gifs">
-                    {gifMenuItems.map((e, idx) => (
-                      <motion.div
-                        className="gif"
-                        whileHover={{ scale: 1.15 }}
-                        whileTap={{ scale: 0.9 }}
-                      >
-                        <img
-                          src={e.url}
-                          // width={e.dims[0] * 0.2}
-                          // height={e.dims[1] * 0.2}
-                          width={100}
-                          height={90}
-                        />
-                      </motion.div>
-                    ))}
+                {!loadingGifGrid && (
+                  <div className="gif-wrapper">
+                    <div className="gifs">
+                      {gifMenuItems.map((e, idx) => (
+                        <motion.div
+                          className="gif"
+                          whileHover={{ scale: 1.15 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => msgGif(e)}
+                        >
+                          <img
+                            src={e.url}
+                            // width={e.dims[0] * 0.2}
+                            // height={e.dims[1] * 0.2}
+                            width={100}
+                            height={90}
+                          />
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {/* Emoji Menu */}
+            {renderEmojiMenu && (
+              <motion.div
+                className="gifMenu"
+                animate={{ opacity: 1 }}
+                transition={{
+                  opacity: {
+                    type: "spring",
+                    duration: 0.05,
+                    mass: 1,
+                    stiffness: 100,
+                    damping: 10,
+                  },
+                }}
+                style={{ alignItems: "normal" }}
+              >
+                {/* Text Input */}
+                <input
+                  className="gifInput"
+                  placeholder="Search for an Emoji..."
+                  id="emojiInputThingy"
+                  style={{ marginLeft: "12.5px" }}
+                />
+
+                {/* Recent Emojis */}
+                <br />
+                <br />
+                <div>
+                  <p className="emojiHeader">Recent</p>
+                </div>
+
+                {/* People & Faces */}
+                <div>
+                  <p className="emojiHeader">People & Faces</p>
+                  <div
+                    style={{
+                      paddingLeft: "10px",
+                      display: "flex",
+                      paddingRight: "10px",
+                      justifyContent: "space-evenly",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <Emoji id="1" />
+                    <Emoji id="2" />
+                    <Emoji id="3" />
+                    <Emoji id="4" />
+                    <Emoji id="5" />
+                    <Emoji id="6" />
+                    <Emoji id="7" />
+                    <Emoji id="8" />
+                    <Emoji id="9" />
+                    <Emoji id="10" />
+                    <Emoji id="11" />
+                    <Emoji id="12" />
+                    <Emoji id="13" />
+                    <Emoji id="14" />
+                    <Emoji id="16" />
+                    <Emoji id="17" />
+                    <Emoji id="18" />
+                    <Emoji id="19" />
+                    <Emoji id="20" />
+                    <Emoji id="21" />
+                    <Emoji id="22" />
+                    <Emoji id="23" />
+                    <Emoji id="24" />
+                    <Emoji id="25" />
+                    <Emoji id="26" />
+                    <Emoji id="27" />
+                    <Emoji id="28" />
+                    <Emoji id="29" />
+                    <Emoji id="30" />
+                    <Emoji id="31" />
+                    <Emoji id="32" />
+                    <Emoji id="33" />
+                    <Emoji id="34" />
+                    <Emoji id="35" />
+                    <Emoji id="36" />
+                    <Emoji id="37" />
+                    <Emoji id="38" />
+                    <Emoji id="39" />
+                    <Emoji id="43" />
+                    <Emoji id="44" />
+                    <Emoji id="45" />
+                    <Emoji id="46" />
+                    <Emoji id="47" />
+                    <Emoji id="48" />
+                    <Emoji id="49" />
+                    <Emoji id="50" />
+                    <Emoji id="51" />
+                    <Emoji id="52" />
+                    <Emoji id="53" />
+                    <Emoji id="54" />
+                    <Emoji id="55" />
+                    <Emoji id="56" />
+                    <Emoji id="57" />
+                    <Emoji id="58" />
+                    <Emoji id="59" />
+                    <Emoji id="60" />
+                    <Emoji id="61" />
+                    <Emoji id="62" />
+                    <Emoji id="63" />
+                    {/* <Emoji id="64" />
+                    <Emoji id="65" />
+                    <Emoji id="66" />
+                    <Emoji id="67" />
+                    <Emoji id="68" />
+                    <Emoji id="69" /> */}
                   </div>
                 </div>
               </motion.div>
@@ -685,6 +912,7 @@ export default function DirectMessages() {
                 style={{ cursor: "pointer", marginLeft: "5px" }}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
+                onClick={() => setRenderEmojiMenu(!renderEmojiMenu)}
               />
 
               <motion.img
@@ -701,7 +929,7 @@ export default function DirectMessages() {
             {displayMessageLoading === true ? (
               <Loader size={3} />
             ) : (
-              <div className="messages">
+              <div className="messages" onScroll={() => scrollCallback()}>
                 <br />
                 <br />
                 {/* Another failsafe :L */}
@@ -714,8 +942,31 @@ export default function DirectMessages() {
                             e.data.sender === ourRef ? "rightMSG" : "leftMSG"
                           }`}
                           id={`clown-${idx}`}
+                          style={
+                            e.data.msg.type === "text"
+                              ? {}
+                              : {
+                                  marginBottom: "50px",
+                                  paddingTop: "20px",
+                                  paddingBottom: "20px",
+                                }
+                          }
                         >
-                          <p>{e.data.msg.text}</p>
+                          {e.data.msg.type === "text" && (
+                            <p>{e.data.msg.text}</p>
+                          )}
+
+                          {e.data.msg.type === "gif" && (
+                            <>
+                              <img
+                                src={e.data.msg.gif.url}
+                                style={{
+                                  maxWidth: "400px",
+                                  maxHeight: "400px",
+                                }}
+                              />
+                            </>
+                          )}
                         </div>
                         <br />
                         <br />

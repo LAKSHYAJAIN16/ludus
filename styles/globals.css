@@ -121,7 +121,7 @@ a {
   min-height: 20px;
   width: fit-content;
   border-radius: 25px;
-  max-width: 300px;
+  max-width: 400px;
   padding-left: 10px;
   padding-right: 10px;
   padding-top: 2px;
@@ -150,12 +150,12 @@ a {
   flex-direction: column;
   align-items: center;
   width: 440px;
-  height: 340px;
+  height: 370px;
   background-color: white;
   border: 2px solid #25aae1;
   border-radius: 25px;
   margin-left: 220px;
-  margin-top: 130px;
+  margin-top: 100px;
   opacity: 0;
   z-index: 1000;
 }
@@ -194,17 +194,28 @@ a {
 
 .gif-wrapper {
   display: block;
-  height: 500px;
+  height: 520px;
 }
 
 .suggestions {
+  position: fixed;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: fixed;
-  margin-top: 23px;
+  margin-top: 35px;
 }
 
 .suggestion {
+  background-color: #25aae1;
+  padding : 5px 10px 5px 10px;
+  zoom: 0.8;
+  cursor: pointer;
+  border-radius: 25px;
+  font-size: 0.8em;
+  margin-right: 5px;
+}
 
+.emojiHeader {
+  padding-left: 10px;
+  font-size: 0.8em;
 }
