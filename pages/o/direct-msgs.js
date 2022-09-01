@@ -16,6 +16,7 @@ import isInViewport from "../../lib/isInViewport";
 import Navbar from "../../components/Navbar";
 import Loader from "../../components/Loader";
 import LoadingModal from "../../components/LoadingModal";
+import EMOJIS from "../../lib/idToEmoji";
 
 export default function DirectMessages() {
   //All of the search Users
@@ -41,6 +42,9 @@ export default function DirectMessages() {
   const [gifSuggestions, setGifSuggestions] = useState([]);
   const [loadingGifGrid, setLoadingGifGrid] = useState(false);
 
+  //Emoji Menu Variables
+  const [recentEmojis, setRecentEmojis] = useState([]);
+
   //Our User
   const [ourUser, setOurUser] = useState();
   const [ourRef, setOurRef] = useState();
@@ -63,6 +67,10 @@ export default function DirectMessages() {
       const temp_ref = JSON.parse(localStorage.getItem("u_ref"))["@ref"].id;
       setOurUser(temp_user);
       setOurRef(temp_ref);
+
+      //Set Recent Emojis
+      const rRecentEmojis = JSON.parse(localStorage.getItem("r_em") || "[]");
+      setRecentEmojis(rRecentEmojis);
 
       //Get All of the active conversations
       setLoadingConvos(true);
@@ -456,6 +464,53 @@ export default function DirectMessages() {
     console.log(isInViewport(element));
   }
 
+  function addEmoji(emoji_id) {
+    console.log(emoji_id);
+    //Get Textbox
+    const textBox = document.getElementById("actInputHAHA");
+
+    //Add it and focus
+    const val = EMOJIS[emoji_id]
+    textBox.value += val;
+    textBox.focus();
+
+    //Add to recents
+    let f = JSON.parse(localStorage.getItem("r_em") || "[]");
+    f.push({ id: emoji_id, txt: val, dt : Date.now() });
+    localStorage.setItem("r_em", JSON.stringify(f));
+    setRecentEmojis(f);
+
+    //Sort
+    let final_f = sortRecentsByTime(f);
+    console.log(final_f);
+  }
+
+  function sortRecentsByTime(recents){
+    const len = recents.length;
+    let ret = [];
+    let acts = recents;
+
+    for (let i = 0; i < len; i++) {
+      let min_val = 80848481803923;
+      let index = 171823123;
+
+      for (let j = 0; j < acts.length; j++) {
+        const element = acts[j];
+
+        if(element.dt < min_val){
+          min_val = element.dt;
+          index = j;
+        }
+      }
+
+      ret.push(recents[index]);
+      acts = acts.splice(index, 1);
+      console.log("called");
+    }
+
+    return ret;
+  }
+
   const AddModal = () => (
     <>
       <div className="blocker" />
@@ -590,6 +645,7 @@ export default function DirectMessages() {
       width={35}
       height={35}
       style={{ cursor: "pointer", marginLeft: "5px" }}
+      onClick={() => addEmoji(id)}
     />
   );
 
@@ -892,6 +948,7 @@ export default function DirectMessages() {
               <input
                 className="acInput"
                 placeholder="what dy want to say m8?"
+                id="actInputHAHA"
                 onKeyDown={(e) => msgText(e.key, e.target.value, e.target)}
               />
 
@@ -946,9 +1003,10 @@ export default function DirectMessages() {
                             e.data.msg.type === "text"
                               ? {}
                               : {
-                                  marginBottom: "50px",
+                                  marginTop: "0px",
                                   paddingTop: "20px",
                                   paddingBottom: "20px",
+                                  display: "block",
                                 }
                           }
                         >
@@ -968,8 +1026,9 @@ export default function DirectMessages() {
                             </>
                           )}
                         </div>
-                        <br />
-                        <br />
+                        <div
+                          style={{ display: "inline-block", width: "100%" }}
+                        />
                         <br />
                       </>
                     ))}
