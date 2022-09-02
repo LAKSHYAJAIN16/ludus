@@ -491,7 +491,7 @@ export default function DirectMessages() {
     let acts = recents;
 
     for (let i = 0; i < len; i++) {
-      let min_val = 80848481803923;
+      let min_val = 80848481803924;
       let index = 171823123;
 
       for (let j = 0; j < acts.length; j++) {
