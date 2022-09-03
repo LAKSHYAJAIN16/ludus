@@ -207,7 +207,7 @@ a {
 
 .suggestion {
   background-color: #25aae1;
-  padding : 5px 10px 5px 10px;
+  padding: 5px 10px 5px 10px;
   zoom: 0.8;
   cursor: pointer;
   border-radius: 25px;
@@ -218,4 +218,33 @@ a {
 .emojiHeader {
   padding-left: 10px;
   font-size: 0.8em;
+}
+
+.plusMenu {
+  margin-top: 360px;
+  margin-left: 20px;
+  width: 200px;
+  height: 100px;
+  background-color: white;
+  border: 2px solid #25aae1;
+  border-radius: 25px;
+  padding-left: 10px;
+  padding-top: 10px;
+  z-index: 1000;
+  position: fixed;
+}
+
+.plusDiv {
+  cursor: pointer;
+  display: flex;
+  margin-bottom: 10px;
+  transition: all 200ms ease;
+}
+
+.plusDiv:hover {
+  scale: 1.05;
+}
+
+.plusADD {
+  padding-left: 5px;
 }

@@ -56,6 +56,7 @@ export default function DirectMessages() {
   const [displayMessageLoading, setDisplayMessageLoading] = useState(false);
   const [renderGifMenu, setRenderGifMenu] = useState(false);
   const [renderEmojiMenu, setRenderEmojiMenu] = useState(false);
+  const [renderPlusMenu, setRenderPlusMenu] = useState(false);
 
   //Dev :L
   const [called, setCalled] = useState(false);
@@ -69,7 +70,7 @@ export default function DirectMessages() {
       setOurRef(temp_ref);
 
       //Set Recent Emojis
-      const rRecentEmojis = JSON.parse(localStorage.getItem("r_em") || "[]");
+      const rRecentEmojis = JSON.parse(localStorage.getItem("rE") || "[]");
       setRecentEmojis(rRecentEmojis);
 
       //Get All of the active conversations
@@ -465,27 +466,58 @@ export default function DirectMessages() {
   }
 
   function addEmoji(emoji_id) {
-    console.log(emoji_id);
     //Get Textbox
     const textBox = document.getElementById("actInputHAHA");
 
     //Add it and focus
-    const val = EMOJIS[emoji_id]
+    const val = EMOJIS[emoji_id];
     textBox.value += val;
     textBox.focus();
 
-    //Add to recents
-    let f = JSON.parse(localStorage.getItem("r_em") || "[]");
-    f.push({ id: emoji_id, txt: val, dt : Date.now() });
-    localStorage.setItem("r_em", JSON.stringify(f));
-    setRecentEmojis(f);
+    //Get the Recent Emojis
+    let x = recentEmojis;
 
-    //Sort
-    let final_f = sortRecentsByTime(f);
-    console.log(final_f);
+    //First, check if there is an object with our emoji already
+    let found = false;
+    for (let i = 0; i < x.length; i++) {
+      const category = x[i];
+      if (category.id === emoji_id) {
+        //Set Found to true
+        found = true;
+
+        //INcrement count
+        category.count += 1;
+
+        //Increment last timestamp
+        category.last = Date.now();
+
+        //Change the array!
+        x[i] = category;
+        break;
+      }
+    }
+
+    //If we haven't found it
+    if (found === false) {
+      x.push({
+        id: emoji_id,
+        last: Date.now(),
+        count: 1,
+      });
+    }
+
+    //Sort X
+    x = x.sort(function (a, b) {
+      return b.last - a.last;
+    });
+    x.splice(24);
+    setRecentEmojis(x);
+
+    //Push it to Local Storage
+    localStorage.setItem("rE", JSON.stringify(x));
   }
 
-  function sortRecentsByTime(recents){
+  function sortRecentsByTime(recents) {
     const len = recents.length;
     let ret = [];
     let acts = recents;
@@ -497,7 +529,7 @@ export default function DirectMessages() {
       for (let j = 0; j < acts.length; j++) {
         const element = acts[j];
 
-        if(element.dt < min_val){
+        if (element.dt < min_val) {
           min_val = element.dt;
           index = j;
         }
@@ -848,6 +880,22 @@ export default function DirectMessages() {
                 <br />
                 <div>
                   <p className="emojiHeader">Recent</p>
+
+                  <div
+                    style={{
+                      paddingLeft: "10px",
+                      display: "flex",
+                      paddingRight: "10px",
+                      justifyContent: "space-evenly",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    {recentEmojis.map((e) => (
+                      <>
+                        <Emoji id={e.id} />
+                      </>
+                    ))}
+                  </div>
                 </div>
 
                 {/* People & Faces */}
@@ -932,6 +980,39 @@ export default function DirectMessages() {
               </motion.div>
             )}
 
+            {/* Plus Menu */}
+            {renderPlusMenu && (
+              <motion.div
+                className="plusMenu"
+                animate={{ opacity: 1 }}
+                transition={{
+                  opacity: {
+                    type: "spring",
+                    duration: 0.05,
+                    mass: 1,
+                    stiffness: 100,
+                    damping: 10,
+                  },
+                }}
+                style={{ alignItems: "normal" }}
+              >
+                <div className="plusDiv">
+                  <Image src="/image_ULU.png" width={20} height={20} />
+                  <span className="plusADD">Add Image</span>
+                </div>
+
+                <div className="plusDiv">
+                  <Image src="/video_ULU.png" width={20} height={20} />
+                  <span className="plusADD">Add Video</span>
+                </div>
+
+                <div className="plusDiv">
+                  <Image src="/file_ULU.png" width={20} height={20} />
+                  <span className="plusADD">Add File</span>
+                </div>
+              </motion.div>
+            )}
+
             {/* Text Box */}
             <div className="activeChatTextBox">
               {/* Plus Icon */}
@@ -942,6 +1023,7 @@ export default function DirectMessages() {
                 style={{ cursor: "pointer", marginRight: "7px" }}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
+                onClick={() => setRenderPlusMenu(!renderPlusMenu)}
               />
 
               {/* Actual Input */}
