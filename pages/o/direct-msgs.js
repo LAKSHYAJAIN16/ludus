@@ -17,6 +17,7 @@ import Navbar from "../../components/Navbar";
 import Loader from "../../components/Loader";
 import LoadingModal from "../../components/LoadingModal";
 import EMOJIS from "../../lib/idToEmoji";
+import { async } from "@firebase/util";
 
 export default function DirectMessages() {
   //All of the search Users
@@ -424,6 +425,12 @@ export default function DirectMessages() {
     setLoadingGifGrid(false);
   }
 
+  async function attachImage(file) {
+    console.log(file);
+    const url = URL.createObjectURL(file);
+    console.log(url);
+  }
+
   function lookForEmoticons(txt) {
     let n = txt;
 
@@ -515,32 +522,6 @@ export default function DirectMessages() {
 
     //Push it to Local Storage
     localStorage.setItem("rE", JSON.stringify(x));
-  }
-
-  function sortRecentsByTime(recents) {
-    const len = recents.length;
-    let ret = [];
-    let acts = recents;
-
-    for (let i = 0; i < len; i++) {
-      let min_val = 80848481803924;
-      let index = 171823123;
-
-      for (let j = 0; j < acts.length; j++) {
-        const element = acts[j];
-
-        if (element.dt < min_val) {
-          min_val = element.dt;
-          index = j;
-        }
-      }
-
-      ret.push(recents[index]);
-      acts = acts.splice(index, 1);
-      console.log("called");
-    }
-
-    return ret;
   }
 
   const AddModal = () => (
@@ -996,20 +977,44 @@ export default function DirectMessages() {
                 }}
                 style={{ alignItems: "normal" }}
               >
-                <div className="plusDiv">
-                  <Image src="/image_ULU.png" width={20} height={20} />
-                  <span className="plusADD">Add Image</span>
-                </div>
+                <input
+                  type="file"
+                  id="image-input"
+                  style={{ display: "none" }}
+                  accept=".jpg,.jpeg,.png,.ico,.gif"
+                  onChange={(e) => attachImage(e.target.files[0])}
+                />
+                <label htmlFor="image-input">
+                  <div className="plusDiv">
+                    <Image src="/image_ULU.png" width={20} height={20} />
+                    <span className="plusADD">Add Image</span>
+                  </div>
+                </label>
 
-                <div className="plusDiv">
-                  <Image src="/video_ULU.png" width={20} height={20} />
-                  <span className="plusADD">Add Video</span>
-                </div>
+                <input
+                  type="file"
+                  id="video-input"
+                  style={{ display: "none" }}
+                  accept=".mp4"
+                />
+                <label htmlFor="video-input">
+                  <div className="plusDiv">
+                    <Image src="/video_ULU.png" width={20} height={20} />
+                    <span className="plusADD">Add Video</span>
+                  </div>
+                </label>
 
-                <div className="plusDiv">
-                  <Image src="/file_ULU.png" width={20} height={20} />
-                  <span className="plusADD">Add File</span>
-                </div>
+                <input
+                  type="file"
+                  id="file-input"
+                  style={{ display: "none" }}
+                />
+                <label htmlFor="file-input">
+                  <div className="plusDiv">
+                    <Image src="/file_ULU.png" width={20} height={20} />
+                    <span className="plusADD">Add File</span>
+                  </div>
+                </label>
               </motion.div>
             )}
 
