@@ -11,7 +11,7 @@ import Navbar from "../../components/Navbar";
 import Loader from "../../components/Loader";
 import LoadingModal from "../../components/LoadingModal";
 import EMOJIS from "../../lib/idToEmoji";
-import { async } from "@firebase/util";
+import bytesToNomen from "../../lib/bytesToNomen";
 
 export default function DirectMessages() {
   //All of the search Users
@@ -338,7 +338,7 @@ export default function DirectMessages() {
       msg: {
         type: "image",
         image: {
-          url: url,
+          url: res1.data.url,
           asset_id: res1.data.asset_id,
           dimensions: {
             width: res1.data.width,
@@ -437,6 +437,60 @@ export default function DirectMessages() {
 
     //API (fauna backend)
     const res = await axios.post("/api/create/dms/fauna-msg", actualPayload);
+    console.log(res);
+  }
+
+  async function msgFile(file) {
+    //Assemble formdata
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", "cdkq7wce");
+
+    //Cloudinary
+    const res1 = await axios.post(
+      "https://api.cloudinary.com/v1_1/everything-limited/auto/upload",
+      formData
+    );
+
+    //Create Payload
+    const payload = {
+      msg: {
+        type: "file",
+        file: {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          url: res1.data.url,
+        },
+      },
+      sender: activeChatUser.ourGuy.ref["@ref"].id,
+      reciever: activeChatUser.otherGuy.ref["@ref"].id,
+    };
+    console.log(payload);
+
+    //Add to the chatMessageInfo (JAVASCRIPT!)
+    setDisplayMessageLoading(true);
+    let curChat = chatMessageInfo;
+    curChat[currentChatID].push({ data: payload });
+    setChatMessageInfo(curChat);
+    await sleep(0.001);
+    setDisplayMessageLoading(false);
+
+    //Scroll into view (ikr javascript)
+    await sleep(0.001);
+    document
+      .getElementById(`clown-${curChat[currentChatID].length - 1}`)
+      .scrollIntoView({ behavior: "auto" });
+
+    //Firebase realtime backend
+    const res2 = await axios.post(
+      `/api/create/dms/fire-msg?channel=${currentChatID}`,
+      payload
+    );
+    console.log(res2);
+
+    //API (fauna backend)
+    const res = await axios.post("/api/create/dms/fauna-msg", payload);
     console.log(res);
   }
 
@@ -629,6 +683,15 @@ export default function DirectMessages() {
 
     //Push it to Local Storage
     localStorage.setItem("rE", JSON.stringify(x));
+  }
+
+  function download(url, filename) {
+    var link = document.createElement("a");
+    link.download = filename;
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   const AddModal = () => (
@@ -1133,6 +1196,7 @@ export default function DirectMessages() {
                   type="file"
                   id="file-input"
                   style={{ display: "none" }}
+                  onChange={(e) => msgFile(e.target.files[0])}
                 />
                 <label htmlFor="file-input">
                   <div className="plusDiv">
@@ -1254,6 +1318,34 @@ export default function DirectMessages() {
                             <>
                               <VideoPlayerLudus src={e.data.msg.video} />
                             </>
+                          )}
+
+                          {e.data.msg.type === "file" && (
+                            <div
+                              className="flex"
+                              style={{ cursor: "pointer" }}
+                              onClick={() =>
+                                download(e.data.msg.file.url, e.data.msg.file.name)
+                              }
+                            >
+                              <Image
+                                src="/txt_L.png"
+                                width={40}
+                                height={40}
+                                style={{
+                                  marginTop: "0px",
+                                  marginBottom: "0px",
+                                }}
+                              />
+                              <div className="file-box-right">
+                                <p className="file-name">
+                                  {e.data.msg.file.name}
+                                </p>
+                                <p className="file-size">
+                                  {bytesToNomen(e.data.msg.file.size)}
+                                </p>
+                              </div>
+                            </div>
                           )}
                         </div>
                         <div
