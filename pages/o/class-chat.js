@@ -198,7 +198,6 @@ export default function ClassChat() {
   };
 
   const retrieveMessages = async (num, grade, section, server) => {
-    console.log("it rendered");
     setChatState(num);
     if (num === 0) {
       const res = await axios.get(
@@ -241,6 +240,7 @@ export default function ClassChat() {
     <>
       <div className="main">
         <Navbar />
+        
         <div className="side-content content">
           <div className="topSliders">
             <button

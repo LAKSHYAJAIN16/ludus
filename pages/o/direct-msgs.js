@@ -2,13 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import {
-  query,
-  collection,
-  where,
-  onSnapshot,
-  limitToLast,
-} from "firebase/firestore";
+import { query, collection, where, onSnapshot } from "firebase/firestore";
 
 import db from "../../lib/firebase";
 import sleep from "../../lib/sleep";
@@ -327,6 +321,125 @@ export default function DirectMessages() {
     console.log(res);
   }
 
+  async function msgImage(file) {
+    //Assemble formdata
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", "cdkq7wce");
+
+    //Cloudinary
+    const res1 = await axios.post(
+      "https://api.cloudinary.com/v1_1/everything-limited/auto/upload",
+      formData
+    );
+
+    //Create Payload
+    const payload = {
+      msg: {
+        type: "image",
+        image: {
+          url: url,
+          asset_id: res1.data.asset_id,
+          dimensions: {
+            width: res1.data.width,
+            height: res1.data.height,
+          },
+          format: res1.data.format,
+          url: res1.data.url,
+        },
+      },
+      sender: activeChatUser.ourGuy.ref["@ref"].id,
+      reciever: activeChatUser.otherGuy.ref["@ref"].id,
+    };
+    console.log(payload);
+
+    //Add to the chatMessageInfo (JAVASCRIPT!)
+    setDisplayMessageLoading(true);
+    let curChat = chatMessageInfo;
+    curChat[currentChatID].push({ data: payload });
+    setChatMessageInfo(curChat);
+    await sleep(0.001);
+    setDisplayMessageLoading(false);
+
+    //Scroll into view (ikr javascript)
+    await sleep(0.001);
+    document
+      .getElementById(`clown-${curChat[currentChatID].length - 1}`)
+      .scrollIntoView({ behavior: "auto" });
+
+    //Firebase realtime backend
+    const res2 = await axios.post(
+      `/api/create/dms/fire-msg?channel=${currentChatID}`,
+      payload
+    );
+    console.log(res2);
+
+    //API (fauna backend)
+    const res = await axios.post("/api/create/dms/fauna-msg", payload);
+    console.log(res);
+  }
+
+  async function msgVideo(file) {
+    // Create Proxy URL
+    const proxy = URL.createObjectURL(file);
+
+    //Assemble semi-payload
+    const semiPayload = {
+      msg: {
+        type: "video",
+        video: proxy,
+      },
+      sender: activeChatUser.ourGuy.ref["@ref"].id,
+      reciever: activeChatUser.otherGuy.ref["@ref"].id,
+    };
+
+    //Add to the chatMessageInfo (JAVASCRIPT!)
+    setDisplayMessageLoading(true);
+    let curChat = chatMessageInfo;
+    curChat[currentChatID].push({ data: semiPayload });
+    setChatMessageInfo(curChat);
+    await sleep(0.001);
+    setDisplayMessageLoading(false);
+
+    //Scroll into view (ikr javascript)
+    await sleep(0.001);
+    document
+      .getElementById(`clown-${curChat[currentChatID].length - 1}`)
+      .scrollIntoView({ behavior: "auto" });
+
+    //Assemble formdata
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", "cdkq7wce");
+
+    //Cloudinary
+    const res1 = await axios.post(
+      "https://api.cloudinary.com/v1_1/everything-limited/auto/upload",
+      formData
+    );
+
+    //Now, Assemble actual payload
+    const actualPayload = {
+      msg: {
+        type: "video",
+        video: res1.data.url,
+      },
+      sender: activeChatUser.ourGuy.ref["@ref"].id,
+      reciever: activeChatUser.otherGuy.ref["@ref"].id,
+    };
+
+    //Firebase realtime backend
+    const res2 = await axios.post(
+      `/api/create/dms/fire-msg?channel=${currentChatID}`,
+      actualPayload
+    );
+    console.log(res2);
+
+    //API (fauna backend)
+    const res = await axios.post("/api/create/dms/fauna-msg", actualPayload);
+    console.log(res);
+  }
+
   async function getAllMessages(u1, u2) {
     //Get all of the Keys, or Chats we've already buffered
     const keys = Object.keys(chatMessageInfo);
@@ -423,12 +536,6 @@ export default function DirectMessages() {
     console.log(returnA);
     setGifMenuItems(returnA);
     setLoadingGifGrid(false);
-  }
-
-  async function attachImage(file) {
-    console.log(file);
-    const url = URL.createObjectURL(file);
-    console.log(url);
   }
 
   function lookForEmoticons(txt) {
@@ -661,6 +768,23 @@ export default function DirectMessages() {
       onClick={() => addEmoji(id)}
     />
   );
+
+  const VideoPlayerLudus = ({ src }) => {
+    const [mouseIsOver, setMouseIsOver] = useState(false);
+
+    return (
+      <div
+        onMouseEnter={(e) => setMouseIsOver(true)}
+        onMouseLeave={() => setMouseIsOver(false)}
+      >
+        <video
+          src={src}
+          controls={mouseIsOver}
+          style={{ maxWidth: "400px" }}
+        ></video>
+      </div>
+    );
+  };
 
   return (
     <>
@@ -982,7 +1106,7 @@ export default function DirectMessages() {
                   id="image-input"
                   style={{ display: "none" }}
                   accept=".jpg,.jpeg,.png,.ico,.gif"
-                  onChange={(e) => attachImage(e.target.files[0])}
+                  onChange={(e) => msgImage(e.target.files[0])}
                 />
                 <label htmlFor="image-input">
                   <div className="plusDiv">
@@ -996,6 +1120,7 @@ export default function DirectMessages() {
                   id="video-input"
                   style={{ display: "none" }}
                   accept=".mp4"
+                  onChange={(e) => msgVideo(e.target.files[0])}
                 />
                 <label htmlFor="video-input">
                   <div className="plusDiv">
@@ -1110,6 +1235,24 @@ export default function DirectMessages() {
                                   maxHeight: "400px",
                                 }}
                               />
+                            </>
+                          )}
+
+                          {e.data.msg.type === "image" && (
+                            <>
+                              <img
+                                src={e.data.msg.image.url}
+                                style={{
+                                  maxWidth: "400px",
+                                  maxHeight: "400px",
+                                }}
+                              />
+                            </>
+                          )}
+
+                          {e.data.msg.type === "video" && (
+                            <>
+                              <VideoPlayerLudus src={e.data.msg.video} />
                             </>
                           )}
                         </div>
