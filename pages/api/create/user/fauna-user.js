@@ -1,7 +1,8 @@
 import { Create, Collection } from "faunadb";
 import { scryptSync, randomBytes } from "crypto";
+import { doc, setDoc } from "firebase/firestore";
 
-import { client } from "../../../lib/fauna";
+import { client } from "../../../../lib/fauna";
 
 export default async function handler(req, res) {
   //Get Client
@@ -37,10 +38,10 @@ export default async function handler(req, res) {
       banner:
         "https://www.solidbackgrounds.com/images/2560x1600/2560x1600-dark-gray-solid-color-background.jpg",
       colorScheme: "def",
-      favColor:"",
+      favColor: "",
       favSong: "",
       favMovie: "",
-      bio : "A Proud ludus User!"
+      bio: "A Proud ludus User!",
     },
   };
 
@@ -48,6 +49,7 @@ export default async function handler(req, res) {
   try {
     const doc = await fauna.query(Create(Collection("users"), { data }));
     res.status(200).send(doc);
+    //Create Firebase
   } catch (error) {
     res.json(error);
   }

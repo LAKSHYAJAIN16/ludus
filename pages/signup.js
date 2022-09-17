@@ -15,7 +15,7 @@ export default function Signup() {
     setParams(dataForParams);
   }, []);
 
-  const submit = async(e) => {
+  const submit = async (e) => {
     //Prevent Reload
     e.preventDefault();
 
@@ -25,18 +25,21 @@ export default function Signup() {
 
     //Merge it with our Data
     const merged = {
-      dets : formData,
-      server : params
-    }
+      dets: formData,
+      server: params,
+    };
 
     //Send Request
-    const res= await axios.post("/api/create/user", merged);
+    const res = await axios.post("/api/create/user/fauna-user", merged);
+    console.log(res);
 
     //Save the data to local storage
     localStorage.setItem("u_u", JSON.stringify(res.data.data));
     localStorage.setItem("u_ref", JSON.stringify(res.data.ref));
 
-    window.location.replace("/o/home");
+    //Firebase
+    
+    // window.location.replace("/o/home");
   };
 
   return (

@@ -1512,4 +1512,4 @@ export default function DirectMessages() {
       </style>
     </>
   );
-}
+};
