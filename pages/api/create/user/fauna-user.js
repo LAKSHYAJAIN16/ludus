@@ -1,12 +1,12 @@
 import { Create, Collection } from "faunadb";
 import { scryptSync, randomBytes } from "crypto";
-import { doc, setDoc } from "firebase/firestore";
 
 import { client } from "../../../../lib/fauna";
 
 export default async function handler(req, res) {
   //Get Client
   const fauna = client;
+
   //Get the Data
   const inData = req.body;
 
@@ -44,6 +44,7 @@ export default async function handler(req, res) {
       bio: "A Proud ludus User!",
     },
   };
+  console.log(data);
 
   //Define Query using FQL
   try {

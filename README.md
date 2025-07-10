@@ -1,34 +1,94 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Ludus
 
-## Getting Started
+**Ludus** — The social network built *exclusively* for high school communities.  
+> Where classmates connect, organize, and stay in touch — for life.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-```
+## Table of Contents
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- [About](#about)  
+- [Features](#features)  
+- [Tech Stack](#tech-stack)  
+- [Installation](#installation)  
+- [Usage](#usage)  
+- [Contributing](#contributing)  
+- [License](#license)  
+- [Status](#status)  
+- [Contact](#contact)  
 
-You can start editing the page by modifying `pages/index.js`. The page auto-updates as you edit the file.
+---
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.js`.
+## About
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+Ludus is a private, school-centric social media platform designed to bring high school students together in a safe, focused environment.  
 
-## Learn More
+Unlike mainstream platforms, Ludus requires users to sign up with their official school email, ensuring authentic communities limited to classmates only. This means no random strangers, no doomscrolling, and no creepy DMs — just real school connections.  
 
-To learn more about Next.js, take a look at the following resources:
+Ludus supports classic social media features plus event organization and communal chats, making it the go-to app for everything student life — from study groups to parties.  
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Importantly, Ludus communities persist beyond graduation, providing a lifelong space to reconnect, reminisce, and organize reunions.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## Features
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- School email verification for authentic membership  
+- School-specific private feeds — only see posts from classmates  
+- Post text, images, and comments  
+- Create and join events (study sessions, hangouts, parties, etc.)  
+- Communal group chat for each school  
+- Persistent communities to stay connected after graduation  
+- Clean, modern UI designed for ease of use  
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+---
+
+## Tech Stack
+
+- [Next.js](https://nextjs.org/) — React framework for frontend  
+- [FaunaDB](https://fauna.com/) — Serverless database  
+- [GraphQL](https://graphql.org/) — Flexible data queries  
+- [Cloudinary](https://cloudinary.com/) — Image upload & management  
+- JavaScript / TypeScript for application logic  
+
+---
+
+## Installation
+
+**Note:** This project is currently not actively maintained but available for forking, contribution, or revival.
+
+1. Clone the repository:  
+   ```bash
+   git clone https://github.com/yourusername/ludus.git
+   cd ludus
+   ```
+
+2. Install dependencies:  
+   ```bash
+   npm install
+   ```
+
+3. Setup environment variables:  
+   Create a `.env.local` file based on `.env.example` and add your credentials for FaunaDB, Cloudinary, etc.
+
+4. Run the development server:  
+   ```bash
+   npm run dev
+   ```
+
+5. Open [http://localhost:3000](http://localhost:3000) to view in your browser.
+
+---
+
+## Usage
+
+- Sign up with your official school email to join your school’s private community  
+- Create posts, comment, and share images  
+- Organize or join events within your school  
+- Use the communal chat to stay connected with classmates  
+
+
+## Status
+
+This project is currently **not maintained**.  
+---
