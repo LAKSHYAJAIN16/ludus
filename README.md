@@ -1,21 +1,7 @@
 # Ludus
 
 **Ludus** — The social network built *exclusively* for high school communities.  
-> Where classmates connect, organize, and stay in touch — for life.
-
----
-
-## Table of Contents
-
-- [About](#about)  
-- [Features](#features)  
-- [Tech Stack](#tech-stack)  
-- [Installation](#installation)  
-- [Usage](#usage)  
-- [Contributing](#contributing)  
-- [License](#license)  
-- [Status](#status)  
-- [Contact](#contact)  
+***Where classmates connect, organize, and stay in touch — for life.***
 
 ---
 
