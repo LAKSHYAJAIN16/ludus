@@ -26,8 +26,8 @@ Importantly, Ludus communities persist beyond graduation, providing a lifelong s
 - Communal group chat for each school  
 - Persistent communities to stay connected after graduation  
 - Clean, modern UI designed for ease of use  
-
 ---
+
 
 ## Tech Stack
 
@@ -36,36 +36,7 @@ Importantly, Ludus communities persist beyond graduation, providing a lifelong s
 - [GraphQL](https://graphql.org/) — Flexible data queries  
 - [Cloudinary](https://cloudinary.com/) — Image upload & management  
 - JavaScript / TypeScript for application logic  
-
 ---
-
-## Installation
-
-**Note:** This project is currently not actively maintained but available for forking, contribution, or revival.
-
-1. Clone the repository:  
-   ```bash
-   git clone https://github.com/yourusername/ludus.git
-   cd ludus
-   ```
-
-2. Install dependencies:  
-   ```bash
-   npm install
-   ```
-
-3. Setup environment variables:  
-   Create a `.env.local` file based on `.env.example` and add your credentials for FaunaDB, Cloudinary, etc.
-
-4. Run the development server:  
-   ```bash
-   npm run dev
-   ```
-
-5. Open [http://localhost:3000](http://localhost:3000) to view in your browser.
-
----
-
 ## Usage
 
 - Sign up with your official school email to join your school’s private community  
